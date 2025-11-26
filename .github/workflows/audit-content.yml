@@ -15,8 +15,7 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           model: mistral-ai/ministral-3b
-          script:
-            prompt: Say Hello!
+          prompt: Say Hello!
       - name: Show Output
         run: echo "${{ steps.call-model.outputs.result }}"
 
