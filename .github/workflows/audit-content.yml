@@ -10,33 +10,32 @@ jobs:
   lists-posts:
     runs-on: ubuntu-latest
     outputs:
-      file-list: ${{ steps.list-posts.outputs.FILE_LIST }}
+      items: ${{ steps.build.outputs.items }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Build file list
-        id: list-posts
-        run: | 
-          FILES="["
-          FIRST=true
-          for file in content/posts/*.mdx; do
-            if [ "$FIRST" = true ]; then
-              FILES="${FILES}\"$(basename $file)\""
-              FIRST=false
-            else
-              FILES="${FILES},\"$(basename $file)\""
-            fi
+      - name: Build matrix items (name + content)
+        id: build
+        run: |
+          ITEMS="[]"
+          for f in content/posts/*.mdx; do
+            NAME="$(basename "$f")"
+            CONTENT="$(jq -Rs . < "$f")"   # safely JSON-escape file content
+            ITEMS=$(jq --arg name "$NAME" --arg content "$CONTENT" \
+              '. + [{name: $name, content: $content}]' <<< "$ITEMS")
           done
-          FILES="${FILES}]"
-          echo "FILE_LIST=$FILES" >> $GITHUB_OUTPUT
+          echo "items=$ITEMS" >> "$GITHUB_OUTPUT"
+
   echo-posts:
     needs: lists-posts
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        file: ${{ fromJson(needs.lists-posts.outputs.file-list) }}
+        item: ${{ fromJson(needs.lists-posts.outputs.items) }}
     steps:
-      - name: Echo all Posts
+      - name: Use both name and content from matrix
         run: |
-              echo "Processing file: ${{ matrix.file }}"
+          echo "Filename: ${{ matrix.item.name }}"
+          echo "Content (first 10 lines):"
+          echo '${{ matrix.item.content }}' | head -n 10
+# ...existing code...
