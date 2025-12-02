@@ -18,24 +18,24 @@ jobs:
         id: build
         run: |
           ITEMS="[]"
-          for f in content/posts/*.mdx; do
+            for f in ./content/posts/*.mdx; do
             NAME="$(basename "$f")"
             CONTENT="$(jq -Rs . < "$f")"
             ITEMS=$(jq --arg name "$NAME" --arg content "$CONTENT" \
-              '. + [{name: $name, content: $content}]' <<< "$ITEMS")
-          done
-          echo "items=$ITEMS" >> "$GITHUB_OUTPUT"
+                '. + [{name: $name, content: $content}]' <<< "$ITEMS")
+            done
+            $GITHUB_OUTPUT=$(echo $ITEMS)
 
-  echo-posts:
-    needs: lists-posts
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        item: ${{ fromJson(needs.lists-posts.outputs.items) }}
-    steps:
-      - name: Use both name and content from matrix
-        run: |
-          echo "Filename: ${{ matrix.item.name }}"
-          echo "Content (first 10 lines):"
-          echo '${{ matrix.item.content }}' | head -n 10
+  # echo-posts:
+  #   needs: lists-posts
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       item: ${{ fromJson(needs.lists-posts.outputs.items) }}
+  #   steps:
+  #     - name: Use both name and content from matrix
+  #       run: |
+  #         echo "Filename: ${{ matrix.item.name }}"
+  #         echo "Content (first 10 lines):"
+  #         echo '${{ matrix.item.content }}' | head -n 10
 # ...existing code...
