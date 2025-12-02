@@ -28,7 +28,28 @@ jobs:
             echo "items<<EOF" >> "$GITHUB_OUTPUT"
             echo "$ITEMS" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
-  # echo-posts:
+  generate-feedback:
+    needs: lists-posts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        item: ${{ fromJson(needs.lists-posts.outputs.items) }}
+    steps:
+      - name: Call Model
+        id: call-model
+        uses: actions/ai-inference@v1
+        
+        with:
+          model: mistral-ai/ministral-3b
+          system-prompt: |
+            You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
+          propmpt: |
+            Here is the content of the blog post:
+            ${{ matrix.item.content }}
+      - name: Show Output
+        run: echo "${{ steps.call-model.outputs.result }}"
+
+            # echo-posts:
   #   needs: lists-posts
   #   runs-on: ubuntu-latest
   #   strategy:
@@ -44,23 +65,3 @@ jobs:
   #       run: |
   #         echo "Filename: $FILE_NAME"
   #         printf '%s\n' "$FILE_CONTENT"
-    generate-feedback:
-      needs: lists-posts
-      runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          item: ${{ fromJson(needs.lists-posts.outputs.items) }}
-      steps:
-        - name: Call Model
-          id: call-model
-          uses: actions/ai-inference@v1
-          
-          with:
-            model: mistral-ai/ministral-3b
-            system-prompt: |
-              You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
-            propmpt: |
-              Here is the content of the blog post:
-              ${{ matrix.item.content }}
-        - name: Show Output
-          run: echo "${{ steps.call-model.outputs.result }}"
