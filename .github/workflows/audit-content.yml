@@ -24,6 +24,7 @@ jobs:
             ITEMS=$(jq --arg name "$NAME" --argjson content "$CONTENT" \
                 '. + [{name: $name, content: $content}]' <<< "$ITEMS")
             done
+            jq -n --argjson items "$ITEMS" '$items'
             echo "items<<EOF" >> "$GITHUB_OUTPUT"
             echo "$ITEMS" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
