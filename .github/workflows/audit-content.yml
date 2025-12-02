@@ -37,5 +37,5 @@ jobs:
       - name: Use both name and content from matrix
         run: |
           echo "Filename: ${{ matrix.item.name }}"
-          echo "Content (first 10 lines):"
-          echo '${{ matrix.item.content }}' | head -n 10
+          echo "Content:"
+          echo '${{ matrix.item.content }}'
