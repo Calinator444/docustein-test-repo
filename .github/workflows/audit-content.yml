@@ -21,7 +21,7 @@ jobs:
             for f in ./content/posts/*.mdx; do
             NAME="$(basename "$f")"
             CONTENT="$(jq -Rs . < "$f")"
-            ITEMS=$(jq --arg name "$NAME" --arg content "$CONTENT" \
+            ITEMS=$(jq --arg name "$NAME" --argjson content "$CONTENT" \
                 '. + [{name: $name, content: $content}]' <<< "$ITEMS")
             done
             echo "items<<EOF" >> "$GITHUB_OUTPUT"
