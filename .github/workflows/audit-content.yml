@@ -34,12 +34,17 @@ jobs:
     strategy:
       matrix:
         item: ${{ fromJson(needs.lists-posts.outputs.items) }}
+        
     steps:
+    
       - name: Use both name and content from matrix
+        env:
+            FILE_NAME: ${{ matrix.item.name }}
+            FILE_CONTENT: ${{ matrix.item.content }}
         run: |
-          echo "Filename: ${{ matrix.item.name }}"
-          echo "Content:"
-          echo "${{ matrix.item.content }}"
+        run: |
+          echo "Filename: $FILE_NAME"
+          printf '%s\n' "$FILE_CONTENT"
     # run-model:
     #   runs-on: ubuntu-latest
     #   steps:
