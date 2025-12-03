@@ -36,6 +36,9 @@ jobs:
         item: ${{ fromJson(needs.lists-posts.outputs.items) }}
     steps:
       - name: Call Model
+        # TODO: Add docs for replacing this
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         id: call-model
         uses: actions/ai-inference@v1
         
