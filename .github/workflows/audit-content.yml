@@ -38,7 +38,8 @@ jobs:
       - name: Call Model
         id: call-model
         uses: actions/ai-inference@v1
-        
+        outputs:
+          result: ${{ steps.call-model.outputs.result }}
         with:
           model: mistral-ai/ministral-3b
           system-prompt: |
