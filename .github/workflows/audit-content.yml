@@ -41,8 +41,8 @@ jobs:
         id: call-model
         uses: actions/ai-inference@v2
         with:
-          model: openai/o4-mini
-          max_completion_tokens: 1024
+          model: mistral-ai/Ministral-3B
+          
           system-prompt: |
             You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
           prompt: |
