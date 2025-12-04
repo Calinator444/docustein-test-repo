@@ -5,6 +5,7 @@ on:
 
 permissions:
   models: read
+  content: read
 
 jobs: 
   lists-posts:
@@ -37,12 +38,9 @@ jobs:
     steps:
       - name: Call Model
         # TODO: Add docs for replacing this
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         id: call-model
         uses: actions/ai-inference@v2
         with:
-          token: ${{ secrets.GH_TOKEN }}
           model: openai/o4-mini
           system-prompt: |
             You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
