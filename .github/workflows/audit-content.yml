@@ -33,6 +33,7 @@ jobs:
     needs: lists-posts
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 2
       matrix:
         item: ${{ fromJson(needs.lists-posts.outputs.items) }}
     steps:
