@@ -1,13 +1,16 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
+    "baseUrl": ".src",
     // File Layout
     // "rootDir": "./src",
     "outDir": "./dist",
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "target": "esnext",
     // For nodejs:
     // "lib": ["esnext"],
@@ -41,6 +44,5 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-  },
-  "files": ["src/index.ts"]
+  }
 }

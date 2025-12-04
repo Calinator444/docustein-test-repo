@@ -2,18 +2,28 @@ name: Audit Content with AI
 
 on:
   workflow_dispatch:
-
 permissions:
   models: read
   contents: read
   issues: write
-
 jobs: 
   lists-posts:
     runs-on: ubuntu-latest
     outputs:
       items: ${{ steps.build.outputs.items }}
+      
     steps:
+      - name: Query Tina Cloud
+        runs-on: ubuntu-latest
+        env:
+          TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
+          TINA_CLIENT_ID: ${{ secrets.TINA_CLIENT_ID }}
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Api-Key: $TINA_TOKEN" \
+            -d '{"query": "query postConnection { postConnection { totalCount edges { cursor node { ... on Document { _sys { path } } } } } }"}' \
+            https://content.tinajs.io/1.6/content/$TINA_CLIENT_ID/github/main
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Build matrix items (name + content)
