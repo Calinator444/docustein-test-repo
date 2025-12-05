@@ -18,8 +18,8 @@ jobs:
           version: 10
       - name: "Run AST Parser"
         run: |
-          pnpm --dir=scripts/parse-tina-response install
-          pnpm --dir=scripts/parse-tina-response run start
+          pnpm --dir=.github/scripts/parse-tina-response install
+          pnpm --dir=.github/scripts/parse-tina-response run start
       
   # lists-posts:
   #   runs-on: ubuntu-latest
