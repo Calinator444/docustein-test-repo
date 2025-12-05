@@ -37,13 +37,13 @@ jobs:
           echo "$ITEMS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
   generate-feedback:
-    needs: lists-posts
+    needs: run-ast-parser
     runs-on: ubuntu-latest
     strategy:
       # add a time buffer to avoid rate limiting
       max-parallel: 2
       matrix:
-        item: ${{ fromJson(needs.lists-posts.outputs.items) }}
+        item: ${{ fromJson(needs.run-ast-parser.outputs.items) }}
     steps: 
       - name: Checkout Repository
         run: |
