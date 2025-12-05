@@ -68,6 +68,6 @@ jobs:
               `${process.env.FILE_PATH}`,
             ].join('\n');
             const res = await github.rest.issues.create({
-              owner, repo, title, body, labels: ['ai-audit']
+              owner, repo, title, body
             });
             core.info(`Created issue \#${res.data.number}`);
