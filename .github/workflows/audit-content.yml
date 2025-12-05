@@ -24,63 +24,45 @@ jobs:
             -d '{"query": "query postConnection { postConnection { totalCount edges { cursor node { ... on Document { _sys { path } } } } } }"}' \
             https://content.tinajs.io/1.6/content/02e62100-71a7-4638-9442-06fddf27d187/github/main)"
           pnpm --dir=.github/scripts/parse-tina-response install
-          pnpm --dir=.github/scripts/parse-tina-response run start
+          RESULT="$(pnpm --dir=.github/scripts/parse-tina-response run start)"
+          FILES=$(echo "$RESULT" | jq -r '.[]')
+          ITEMS="[]"
+          for f in $FILES; do
+            NAME="$(basename "$f")"
+            CONTENT="$(jq -Rs . < "$f")"  # JSON-escape file content
+            ITEMS=$(jq --arg name "$NAME" --arg content "$CONTENT" \
+              '. + [{name: $name, content: $content}]' <<< "$ITEMS")
+          done
+          echo "items<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$ITEMS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+  generate-feedback:
+    needs: lists-posts
+    runs-on: ubuntu-latest
+    strategy:
+      # add a time buffer to avoid rate limiting
+      max-parallel: 2
+      matrix:
+        item: ${{ fromJson(needs.lists-posts.outputs.items) }}
+    steps: 
+      - name: Checkout Repository
+        run: |
+          echo "FILE"
+          echo ${{ matrix.item.name }}
       
-  # lists-posts:
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     items: ${{ steps.build.outputs.items }}
-  #   steps:
-  #     - name: Query Tina Cloud
-  #       runs-on: ubuntu-latest
-  #       env:
-  #         TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
-  #         TINA_CLIENT_ID: ${{ secrets.TINA_CLIENT_ID }}
-  #       run: |
-  #         curl -X POST \
-  #           -H "Content-Type: application/json" \
-  #           -H "X-Api-Key: $TINA_TOKEN" \
-  #           -d '{"query": "query postConnection { postConnection { totalCount edges { cursor node { ... on Document { _sys { path } } } } } }"}' \
-  #           https://content.tinajs.io/1.6/content/$TINA_CLIENT_ID/github/main
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     - name: Build matrix items (name + content)
-  #       id: build
-  #       run: |
-  #         ITEMS="[]"
-  #           for f in ./content/posts/*.mdx; do
-  #           NAME="$(basename "$f")"
-  #           CONTENT="$(jq -Rs . < "$f")"
-  #           ITEMS=$(jq --arg name "$NAME" --argjson content "$CONTENT" \
-  #               '. + [{name: $name, content: $content}]' <<< "$ITEMS")
-  #           done
-  #           jq -n --argjson items "$ITEMS" '$items'
-  #           echo "items<<EOF" >> "$GITHUB_OUTPUT"
-  #           echo "$ITEMS" >> "$GITHUB_OUTPUT"
-  #           echo "EOF" >> "$GITHUB_OUTPUT"
-
-
-  # generate-feedback:
-  #   needs: lists-posts
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     # add a time buffer to avoid rate limiting
-  #     max-parallel: 2
-  #     matrix:
-  #       item: ${{ fromJson(needs.lists-posts.outputs.items) }}
-  #   steps:
-  #     - name: Call Model
-  #       # TODO: Add docs for replacing this
-  #       id: call-model
-  #       uses: actions/ai-inference@v2
-  #       with:
-  #         model: mistral-ai/Ministral-3B
+    # steps:
+    #   - name: Call Model
+    #     # TODO: Add docs for replacing this
+    #     id: call-model
+    #     uses: actions/ai-inference@v2
+    #     with:
+    #       model: mistral-ai/Ministral-3B
           
-  #         system-prompt: |
-  #           You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
-  #         prompt: |
-  #           Here is the content of the blog post:
-  #           ${{ matrix.item.content }}
+    #       system-prompt: |
+    #         You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
+    #       prompt: |
+    #         Here is the content of the blog post:
+    #         ${{ matrix.item.content }}
   #     - name: "Log Issues"
   #       uses: actions/github-script@v8
   #       env:
