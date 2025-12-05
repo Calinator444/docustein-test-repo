@@ -60,7 +60,8 @@ jobs:
         with: 
           script:
             const { owner, repo } = context.repo;
-            const title = `🦙 Content audit | ${process.env.FILE_NAME}`;
+            const title = `🦙 Content audit | ${process.env.FILE_PATH}`;
+            // colon test:
             const body = [
               `### Description`,
               `${process.env.FEEDBACK}`,
