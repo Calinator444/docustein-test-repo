@@ -14,4 +14,9 @@ type Edge = {
     }
 }
 
-export type { GraphQLResponse, Edge };
+type FileData = {
+    path: string;
+    contents: string;
+}
+
+export type { GraphQLResponse, Edge, FileData };

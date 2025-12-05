@@ -1,4 +1,24 @@
-import type { GraphQLResponse, Edge } from "./types";
+import type { GraphQLResponse, Edge, FileData } from "./types";
+
+import {readFile } from 'node:fs/promises';
+
+const ROOT_DIR = "../../../"
+const extractFilePaths = (response: GraphQLResponse) : Array<string> => {
+    const filePaths : Array<string> = [];
+    
+    for(const key of Object.keys(response.data)) {
+      const edges = response.data[key]!.edges as Array<Edge>;
+      edges.forEach((edge)=> {
+          filePaths.push(edge.node._sys.path);
+      })
+    }
+    return filePaths;
+}
+
+const mapFileContents = async (path: string) : Promise<FileData> => {
+  const contents = await readFile(`${ROOT_DIR}${path}`, {encoding: "utf-8"});
+  return {path, contents};
+}
 
 export async function main(): Promise<void> {
 
@@ -13,15 +33,10 @@ export async function main(): Promise<void> {
 
   const response = JSON.parse(tinaGqlResponse) as GraphQLResponse;
 
-  const filePaths : Array<string> = [];
+  const files = extractFilePaths(response);
 
-  for(const key of Object.keys(response.data)) {
-    const edges = response.data[key]!.edges as Array<Edge>;
-    edges.forEach((edge)=> {
-        filePaths.push(edge.node._sys.path);
-    })
-  }
-
-  console.log(JSON.stringify(filePaths));
+  const allContents = await Promise.all(files.map((path)=> mapFileContents(path)));
+  
+  console.log(JSON.stringify(allContents));
 }
 main();
