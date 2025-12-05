@@ -47,34 +47,34 @@ jobs:
           echo "Processing file at path: ${{ matrix.item.path }}"
           echo "Content preview: "
           echo "${{ matrix.item.content }}" | head -n 10
-      # - name: Call Model
-      #   # TODO: Add docs for replacing this
-      #   id: call-model
-      #   uses: actions/ai-inference@v2
-      #   with:
-      #     model: mistral-ai/Ministral-3B
-      #     system-prompt: |
-      #       You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
-      #     prompt: |
-      #       Here is the content of the blog post:
-      #       ${{ matrix.item.content }}
-      # - name: "Log Issues"
-      #   uses: actions/github-script@v8
-      #   env:
-      #     FILE_PATH: ${{ matrix.item.path }}
-      #     FEEDBACK: ${{ steps.call-model.outputs.response }}
-      #   with: 
-      #     script:
-      #       const { owner, repo } = context.repo;
-      #       const title = `🦙 Content audit | ${process.env.FILE_PATH}`;
-      #       const body = [
-      #         `### Description`,
-      #         `${process.env.FEEDBACK}`,
-      #         `### File Location`,
-      #         `${process.env.FILE_PATH}`,
-      #       ].join('\n');
-      #       const labels = ['🤖 Content Audit'];
-      #       const res = await github.rest.issues.create({
-      #         owner, repo, title, body, labels,
-      #       });
-      #       core.info(`Created issue \#${res.data.number}`);
+      - name: Call Model
+        # TODO: Add docs for replacing this
+        id: call-model
+        uses: actions/ai-inference@v2
+        with:
+          model: mistral-ai/Ministral-3B
+          system-prompt: |
+            You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
+          prompt: |
+            Here is the content of the blog post:
+            ${{ matrix.item.content }}
+      - name: "Log Issues"
+        uses: actions/github-script@v8
+        env:
+          FILE_PATH: ${{ matrix.item.path }}
+          FEEDBACK: ${{ steps.call-model.outputs.response }}
+        with: 
+          script:
+            const { owner, repo } = context.repo;
+            const title = `🦙 Content audit | ${process.env.FILE_PATH}`;
+            const body = [
+              `### Description`,
+              `${process.env.FEEDBACK}`,
+              `### File Location`,
+              `${process.env.FILE_PATH}`,
+            ].join('\n');
+            const labels = ['🤖 Content Audit'];
+            const res = await github.rest.issues.create({
+              owner, repo, title, body, labels,
+            });
+            core.info(`Created issue \#${res.data.number}`);
