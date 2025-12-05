@@ -28,12 +28,18 @@ jobs:
             https://content.tinajs.io/1.6/content/02e62100-71a7-4638-9442-06fddf27d187/github/main)"
           pnpm --dir=.github/scripts/parse-tina-response install
           ITEMS=$(pnpm --dir=.github/scripts/parse-tina-response --silent start)
-
-          echo "ITEMS"
-          echo "$ITEMS"
+          
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ITEMS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+  log-out:
+    runs-on: ubuntu-latest
+    needs: run-ast-parser
+    steps:
+      - name: Log parsed items
+        run: |
+          echo "echoing previous step"
+          echo "${{ needs.run-ast-parser.outputs.items }}"
   generate-feedback:
     runs-on: ubuntu-latest
     needs: run-ast-parser
