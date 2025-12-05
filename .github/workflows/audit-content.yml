@@ -32,14 +32,6 @@ jobs:
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ITEMS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-  # log-out:
-  #   runs-on: ubuntu-latest
-  #   needs: run-ast-parser
-  #   steps:
-  #     - name: Log parsed items
-  #       run: |
-  #         echo "echoing previous step"
-  #         echo "${{ needs.run-ast-parser.outputs.items }}"
   generate-feedback:
     runs-on: ubuntu-latest
     needs: run-ast-parser
@@ -53,31 +45,34 @@ jobs:
         run: |
           echo "FILE"
           echo ${{ matrix.item.path }}
-      
-    # steps:
-    #   - name: Call Model
-    #     # TODO: Add docs for replacing this
-    #     id: call-model
-    #     uses: actions/ai-inference@v2
-    #     with:
-    #       model: mistral-ai/Ministral-3B
-          
-    #       system-prompt: |
-    #         You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
-    #       prompt: |
-    #         Here is the content of the blog post:
-    #         ${{ matrix.item.content }}
-  #     - name: "Log Issues"
-  #       uses: actions/github-script@v8
-  #       env:
-  #         FILE_NAME: ${{ matrix.item.name }}
-  #         FEEDBACK: ${{ steps.call-model.outputs.response }}
-  #       with: 
-  #         script:
-  #           const { owner, repo } = context.repo;
-  #           const title = `🦙 Content audit | File ${process.env.FILE_NAME}`;
-  #           const body = process.env.FEEDBACK || '(no feedback returned)';
-  #           const res = await github.rest.issues.create({
-  #             owner, repo, title, body,
-  #           });
-  #           core.info(`Created issue \#${res.data.number}`);
+    steps:
+      - name: Call Model
+        # TODO: Add docs for replacing this
+        id: call-model
+        uses: actions/ai-inference@v2
+        with:
+          model: mistral-ai/Ministral-3B
+          system-prompt: |
+            You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
+          prompt: |
+            Here is the content of the blog post:
+            ${{ matrix.item.content }}
+      - name: "Log Issues"
+        uses: actions/github-script@v8
+        env:
+          FILE_PATH: ${{ matrix.item.path }}
+          FEEDBACK: ${{ steps.call-model.outputs.response }}
+        with: 
+          script:
+            const { owner, repo } = context.repo;
+            const title = `🦙 Content audit | ${process.env.FILE_NAME}`;
+            const body = [
+              `### Description`,
+              `${process.env.FEEDBACK}`,
+              `### File Location`,
+              `${process.env.FILE_PATH}`,
+            ].join('\n');
+            const res = await github.rest.issues.create({
+              owner, repo, title, body, labels: ['ai-audit']
+            });
+            core.info(`Created issue \#${res.data.number}`);
