@@ -6,18 +6,15 @@
   "main": "index.js",
   "module": "nodenext",
   "scripts": {
-    "start": "ts-node ./src/index.ts \"$RESP\""
+    "start": "tsx ./src/index.ts \"$RESP\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
-  "dependencies": {
-    "@tinacms/mdx": "^2.0.0"
-  },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
