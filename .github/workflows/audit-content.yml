@@ -38,7 +38,7 @@ jobs:
       # add a time buffer to avoid rate limiting
       max-parallel: 2
       matrix:
-        item: ${{ fromJson(needs.run-ast-parser.outputs.items) }}
+        item: ${{ fromJson(needs.outputs.items) }}
     steps: 
       - name: Checkout Repository
         run: |
