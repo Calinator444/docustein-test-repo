@@ -1,11 +1,10 @@
 import type { GraphQLResponse, Edge, FileData } from "./types";
 
-import {readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 const ROOT_DIR = "../../../"
 const extractFilePaths = (response: GraphQLResponse) : Array<string> => {
     const filePaths : Array<string> = [];
-    
     for(const key of Object.keys(response.data)) {
       const edges = response.data[key]!.edges as Array<Edge>;
       edges.forEach((edge)=> {

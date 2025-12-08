@@ -1,35 +1,20 @@
-
-import { execFile } from 'node:child_process';
 import path from 'path';
 import { readFile, writeFile, stat as statAsync } from 'fs/promises';
-import { promisify } from 'node:util';
+import TinaClient from '../services/tina-client';
+import extractFilePaths from './extract-file-paths';
 
 const REPO_ROOT = path.resolve(process.cwd(), '../../..');
 
 const main = async ()=> {
-    await setLastUpdated("content/posts/future-of-remote-work-2025.mdx");
+
+    const tinaClient = new TinaClient(process.env.TINA_CLIENT_ID!, process.env.TINA_TOKEN!);
+    var content = await tinaClient.getContent()
+    var filePaths = extractFilePaths(content);
+    var thing = filePaths.map(async (filePath)=> setLastChecked(filePath));
+    await Promise.all(thing);
 }
 
-const execFileAsync = promisify(execFile);
-
-async function getGitLastUpdated(filePath: string): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync('git', ['log', '-1', '--format=%cI', filePath], {
-      cwd: REPO_ROOT,
-    });
-    const iso = stdout.trim();
-    return iso || null;
-  } catch {
-    return null;
-  }
-}
-
-async function getFsMtimeISO(filePath: string): Promise<string> {
-  const s = await statAsync(filePath);
-  return new Date(s.mtime).toISOString();
-}
-
-function addLastUpdated(raw: string, iso: string): { changed: boolean; output: string } {
+function addLastChecked(raw: string, iso: string): { changed: boolean; output: string } {
   // Require existing YAML frontmatter; otherwise do nothing
   const fmRe = /^---\r?\n([\s\S]*?)\r?\n---/;
   const match = raw.match(fmRe);
@@ -40,17 +25,18 @@ function addLastUpdated(raw: string, iso: string): { changed: boolean; output: s
   {
     throw new Error("Failed to parse frontmatter header");
   }
-  if (/^\s*lastUpdated\s*:/m.test(header)) {
-    return { changed: false, output: raw };
-  }
-
   const eol = raw.includes('\r\n') ? '\r\n' : '\n';
-  const newHeader = header.replace(/\s*$/, '') + `${eol}lastUpdated: ${iso}`;
-  const output = raw.replace(fmRe, `---${eol}${newHeader}${eol}---`);
+  
+
+  // overwrite (replace existing or append if missing)
+const updatedHeader = header
+    .replace(/^\s*lastChecked\s*:\s*.*$/m, '') // strip existing
+    .replace(/\s*$/, '') + `${eol}lastChecked: ${iso}`;
+  const output = raw.replace(fmRe, `---${eol}${updatedHeader}${eol}---`);
   return { changed: true, output };
 }
 
-async function setLastUpdated(filePath: string) {
+async function setLastChecked(filePath: string) {
 
   const target = path.resolve(REPO_ROOT, filePath);
   let st;
@@ -71,15 +57,16 @@ async function setLastUpdated(filePath: string) {
   }
 
   const raw = await readFile(target, 'utf8');
-  const gitISO = await getGitLastUpdated(target);
-  const iso = gitISO ?? (await getFsMtimeISO(target));
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const iso = d.toISOString();
 
-  const { changed, output } = addLastUpdated(raw, iso);
+  const { changed, output } = addLastChecked(raw, iso);
   if (changed) {
     await writeFile(target, output, 'utf8');
     console.log(`updated: ${path.relative(REPO_ROOT, target)}`);
   } else {
-    console.log('No changes needed.');
+    console.log('No changes needed.', target);
   }
 }
 
@@ -87,5 +74,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
-main();

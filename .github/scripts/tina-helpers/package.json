@@ -6,8 +6,8 @@
   "main": "index.js",
   "module": "nodenext",
   "scripts": {
-    "start": "tsx ./src/index.ts \"$RESP\"",
-    "query-cloud": "tsx ./src/aggregate-items.ts"
+    "aggregate-links": "tsx ./src/aggregate-links.ts",
+    "migrate-content": "tsx ./src/migrate-content.ts"
   },
   "keywords": [],
   "author": "",

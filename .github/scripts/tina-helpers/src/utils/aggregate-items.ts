@@ -1,9 +1,8 @@
-import type { GraphQLResponse } from './types';
-import TinaClient from './services/tina-client';
+import TinaClient from '../services/tina-client';
 
 import 'dotenv/config'
 
-const aggregateLinks = async (desiredLength : number)=> {
+const aggregateContent = async (desiredLength : number)=> {
 
     const tinaClientId = process.env.TINA_CLIENT_ID;
     const tinaToken = process.env.TINA_TOKEN;
@@ -45,7 +44,7 @@ const aggregateLinks = async (desiredLength : number)=> {
 }
 
 const main = async ()=> {
-    const links = await aggregateLinks(16);
+    const links = await aggregateContent(16);
     console.log("All Links:", links);
 }
 

@@ -1,5 +1,4 @@
 name: Audit Content with AI
-
 on:
   workflow_dispatch:
 permissions:
@@ -18,17 +17,11 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
-      - name: "Run AST Parser"
+      - name: "Aggregate Content Paths from TinaCMS"
         id: run
         run: |
-          export RESP="$(curl -X POST \
-            -H "Content-Type: application/json" \
-            -H "X-Api-Key: 3062e1cd69c58ee894ee5b4a7b373d19e21d03b0" \
-            -d '{"query": "query postConnection { postConnection { totalCount edges { cursor node { ... on Document { _sys { path } } } } } }"}' \
-            https://content.tinajs.io/1.6/content/02e62100-71a7-4638-9442-06fddf27d187/github/main)"
           pnpm --dir=.github/scripts/parse-tina-response install
-          ITEMS=$(pnpm --dir=.github/scripts/parse-tina-response --silent start)
-          
+          ITEMS=$(pnpm --dir=.github/scripts/tina-helpers --silent run aggregate-links)
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ITEMS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
