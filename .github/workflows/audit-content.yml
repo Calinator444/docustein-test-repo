@@ -17,10 +17,13 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
+          env:
+            TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
+            TINA_CLIENT_ID: ${{ secrets.TINA_CLIENT_ID }}
       - name: "Aggregate Content Paths from TinaCMS"
         id: run
         run: |
-          pnpm --dir=.github/scripts/parse-tina-response install
+          pnpm --dir=.github/scripts/tina-helpers install
           ITEMS=$(pnpm --dir=.github/scripts/tina-helpers --silent run aggregate-links)
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ITEMS" >> "$GITHUB_OUTPUT"
