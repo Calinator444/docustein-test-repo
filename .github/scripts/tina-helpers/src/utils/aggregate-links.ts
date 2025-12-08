@@ -31,9 +31,9 @@ const aggregateContent = async (desiredLength : number)=> {
         for(const key of Object.keys(content.data)) {
             const data = content.data[key]!;
             const edges = data.edges;
-            var day = Dayjs();
+            const day = Dayjs();
 
-            var expiryDate = day.subtract(Number(expiryInterval), 'day');
+            const expiryDate = day.subtract(Number(expiryInterval), 'day');
 
 
             for(const edge of edges) {
@@ -44,7 +44,7 @@ const aggregateContent = async (desiredLength : number)=> {
                     continue;
                 }
                 
-                if((Dayjs(edge.node.lastChecked).isAfter(expiryDate))) {
+                if((Dayjs(edge.node.lastChecked).isBefore(expiryDate))) {
                     allLinks.push(path);
                 }
 
