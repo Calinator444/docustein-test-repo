@@ -7,7 +7,7 @@
   "module": "nodenext",
   "scripts": {
     "aggregate-links": "tsx ./src/aggregate-links.ts",
-    "map-links-to-content": "tsx ./src/map-links-to-content.ts $PATHS",
+    "map-links-to-content": "tsx ./src/map-links-to-content.ts",
     "migrate-content": "tsx ./src/migrate-content.ts"
   },
   "keywords": [],

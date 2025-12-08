@@ -30,7 +30,7 @@ jobs:
           echo TINA_TOKEN=${{ secrets.TINA_TOKEN }} >> .env
           pnpm install
           PATHS=$(pnpm --silent run aggregate-links)
-          CONTENTS=$(pnpm --silent run map-links-to-content)
+          CONTENTS=$(pnpm --silent run map-links-to-content "$PATHS")
 
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CONTENTS_JSON" >> "$GITHUB_OUTPUT"
