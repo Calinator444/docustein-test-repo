@@ -11,11 +11,12 @@ class TinaClient implements ITinaClient<AuditableContent> {
         this._tinaToken = tinaToken;
     }
 
-    async getContent({first, after} : {first?: number, after?: string}) {
+    async getContent(props? : {first?: number, after?: string}) {
 
 
     let vars = {}
-
+    const first = props?.first;
+    const after = props?.after;
     if(first){
         vars = {...vars, first}
     }
@@ -42,7 +43,8 @@ class TinaClient implements ITinaClient<AuditableContent> {
                     edges {
                         cursor
                         node {
-                            ... on Document {
+                            lastChecked
+                            ... on Document {    
                                 _sys {
                                     path
                                 }
