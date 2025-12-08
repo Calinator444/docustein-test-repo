@@ -33,11 +33,11 @@ jobs:
           CONTENTS=$(pnpm --silent run map-links-to-content "$PATHS")
 
           echo "items<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$CONTENTS_JSON" >> "$GITHUB_OUTPUT"
+          echo "$CONTENTS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
           echo "links<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$PATHS_JSON" >> "$GITHUB_OUTPUT"
+          echo "$PATHS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
   generate-feedback:
