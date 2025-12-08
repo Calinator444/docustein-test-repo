@@ -102,7 +102,7 @@ jobs:
         run: pnpm --dir=.github/scripts/tina-helpers install
       - name: Run update-checked
         run: |
-          pnpm --dir=.github/scripts/tina-helpers run update-checked "${{ needs.run-ast-parser.outputs.items }}""
+          pnpm --dir=.github/scripts/tina-helpers run update-checked "${{ needs.run-ast-parser.outputs.links }}"
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
