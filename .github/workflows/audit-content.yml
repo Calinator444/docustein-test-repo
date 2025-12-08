@@ -111,4 +111,4 @@ jobs:
           branch: chore/update-last-checked-${{ github.run_id }}
           title: "chore: update lastChecked"
           body: "Automated update of lastChecked via CI."
-          labels: chore, content
+          labels: '🤖 Content Audit'
