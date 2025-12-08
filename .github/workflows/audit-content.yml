@@ -5,6 +5,7 @@ permissions:
   models: read
   contents: write
   issues: write
+  pull-requests: write
 jobs: 
   run-ast-parser: 
     outputs:
