@@ -20,6 +20,8 @@ class TinaClient implements ITinaClient<AuditableContent> {
         process.exit(1);
     }
 
+    console.log("Query", query);
+    process.exit(0);
     let vars = {}
     const first = props?.first;
     const after = props?.after;
