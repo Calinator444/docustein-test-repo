@@ -66,7 +66,7 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           model: mistral-ai/Ministral-3B
-          system-prompt: ${{ vars.CONTENT_AUDIT_SYSTEM_PROMPT }}
+          system-prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
           prompt: |
             Here is the content of the blog post:
             ${{ matrix.item.content }}
