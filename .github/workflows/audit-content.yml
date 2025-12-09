@@ -34,6 +34,7 @@ jobs:
           echo TINA_TOKEN=${{ secrets.TINA_TOKEN }} >> .env
           echo TINA_AUDITOR_QUERY='${{ vars.TINA_AUDITOR_QUERY }}' >> .env
           echo TINA_AUDITOR_EXPIRY_DAYS='${{ vars.TINA_AUDITOR_EXPIRY_DAYS }}' >> .env
+          echo TINA_AUDITOR_CONTENT_WINDOW='${{ vars.TINA_AUDITOR_CONTENT_WINDOW }}' >> .env
           pnpm install
           PATHS=$(pnpm --silent run aggregate-links)
           CONTENTS=$(pnpm --silent run map-links-to-content "$PATHS")
