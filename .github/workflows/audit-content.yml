@@ -66,8 +66,7 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           model: mistral-ai/Ministral-3B
-          system-prompt: |
-            You are an expert content auditor. Your task is to review the provided blog post content and provide constructive feedback on its quality, clarity, and engagement. Highlight strengths and suggest specific improvements.
+          system-prompt: ${{ vars.CONTENT_AUDIT_SYSTEM_PROMPT }}
           prompt: |
             Here is the content of the blog post:
             ${{ matrix.item.content }}
@@ -93,7 +92,7 @@ jobs:
             core.info(`Created issue \#${res.data.number}`);
   update-checked:
     runs-on: ubuntu-latest
-    needs: run-ast-parser
+    needs: [run-ast-parser, generate-feedback]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
