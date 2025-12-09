@@ -11,7 +11,12 @@ class TinaClient implements ITinaClient<AuditableContent> {
         this._tinaToken = tinaToken;
     }
 
-
+    /** 
+     * Fertches the outdated content from Tina Cloud.
+     * @param {Object} props - Extra filters for the content query.
+     * @param {number} props.first - The number of items to retrieve.
+     * @param {string} props.after - ISO date string to filter content last checked after this date.
+     */
     async getContent(props? : {first?: number, after?: string}) {
     const query = process.env.TINA_AUDITOR_QUERY;
 
@@ -23,13 +28,19 @@ class TinaClient implements ITinaClient<AuditableContent> {
     let vars = {}
     const first = props?.first;
     const after = props?.after;
+
     if(first){
         vars = {...vars, first}
     }
 
     if (after){
-        vars = {...vars, after}
+        vars = {...vars, filter: {
+                lastChecked: {
+                    after: after
+            }
+        }}
     }
+    console.log('vars:', vars);
     const response = await fetch(`https://content.tinajs.io/1.6/content/${this._tinaClientId}/github/main`, {
         method: 'POST',
         headers: {

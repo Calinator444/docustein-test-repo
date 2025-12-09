@@ -1,6 +1,9 @@
 import TinaClient from '../services/tina-client';
 import Dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
+import Time from '../services/time';
+Dayjs.extend(utc);
 import 'dotenv/config'
 
 const aggregateContent = async (desiredLength : number)=> {
@@ -24,40 +27,21 @@ const aggregateContent = async (desiredLength : number)=> {
     }
 
     const tinaClient = new TinaClient(tinaClientId, tinaToken);
+
+    const expiryDate = Time.getNow().subtract(Number(expiryInterval), 'day');
     
     const allLinks: Array<string> = [];
-    while(true) {
-        const content = await tinaClient.getContent({first: desiredLength});
-        for(const key of Object.keys(content.data)) {
-            const data = content.data[key]!;
-            const edges = data.edges;
-            const day = Dayjs();
 
-            const expiryDate = day.subtract(Number(expiryInterval), 'day');
+    const content = await tinaClient.getContent({first: desiredLength, after: expiryDate.toISOString()});
 
+    for(const key of Object.keys(content.data)) {
+        const data = content.data[key]!;
+        const edges = data.edges;
 
-            for(const edge of edges) {
-                const node = edge.node;
-                const path = node._sys.path;
-                
-                if(edge.node.lastChecked){
-                    continue;
-                }
-                
-                if((Dayjs(edge.node.lastChecked).isBefore(expiryDate))) {
-                    allLinks.push(path);
-                }
-
-                if(allLinks.length === desiredLength)
-                {
-                    return allLinks;
-                }
-            }
-            if(!data.pageInfo.hasNextPage) {
-                return allLinks;
-            }
-        }
+        return edges.map((edge)=> edge.node._sys.path);
     }
+    
+    return allLinks;
 }
 
 export {aggregateContent};
