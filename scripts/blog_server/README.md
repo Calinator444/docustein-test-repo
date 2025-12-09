@@ -1,4 +1,8 @@
-#### Prerequesites
+### Description
+
+This is an MCP tool for generating blog posts that match the Tina starter used as the base of this project.
+
+### Prerequesites
 1. Python
 2. uv
 3. Claude Desktop
