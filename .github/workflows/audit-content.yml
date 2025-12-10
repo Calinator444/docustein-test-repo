@@ -21,10 +21,6 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
-        env:
-          TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
-          TINA_CLIENT_ID: ${{ secrets.TINA_CLIENT_ID }}
-          TINA_AUDITOR_QUERY: ${{ vars.TINA_AUDITOR_QUERY }}
       - name: "Aggregate Content Paths from TinaCMS"
         id: run
         run: |
@@ -32,7 +28,7 @@ jobs:
           touch .env
           echo TINA_CLIENT_ID=${{ secrets.TINA_CLIENT_ID }} >> .env
           echo TINA_TOKEN=${{ secrets.TINA_TOKEN }} >> .env
-          echo TINA_AUDITOR_COLLECTION='${{ vars.TINA_AUDITOR_QUERY }}' >> .env
+          echo TINA_AUDITOR_COLLECTION='${{ vars.TINA_AUDITOR_COLLECTION }}' >> .env
           echo TINA_AUDITOR_EXPIRY_DAYS='${{ vars.TINA_AUDITOR_EXPIRY_DAYS }}' >> .env
           echo TINA_AUDITOR_CONTENT_WINDOW='${{ vars.TINA_AUDITOR_CONTENT_WINDOW }}' >> .env
           pnpm install
