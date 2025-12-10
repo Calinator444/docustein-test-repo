@@ -50,11 +50,6 @@ jobs:
       matrix:
         item: ${{ fromJson(needs.query-tina-content.outputs.items) }}
     steps: 
-      - name: Log matrix item content
-        run: |
-          echo "Processing file at path: ${{ matrix.item.path }}"
-          echo "Content preview: "
-          echo "${{ matrix.item.content }}" | head -n 10
       - name: Call Model
         id: call-model
         uses: actions/ai-inference@v2
