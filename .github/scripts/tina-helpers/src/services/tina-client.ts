@@ -18,7 +18,17 @@ class TinaClient implements ITinaClient<AuditableContent> {
      * @param {string} props.before - ISO date string to get items last checked before this date.
      */
     async getContent(props? : {first?: number, before?: string}) {
-    const query = process.env.TINA_AUDITOR_QUERY;
+
+    const collection = process.env.TINA_AUDITOR_COLLECTION;
+
+    if(!collection) {
+        console.error("Error: TINA_AUDITOR_COLLECTION is not set in environment variables.");
+        process.exit(1);
+    }
+
+    const connection = `${collection}Connection`;
+    const filter = `${capitalizeFirstLetter(collection)}Filter`;
+    const query = `query ${connection}($first: Float, $filter: ${filter}) { ${connection}( first: $first filter:$filter ) { edges { cursor node { ... on Document { _sys { path } } } } } }`
 
     if(!query) {
         console.error("Error: TINA_AUDITOR_QUERY is not set in environment variables.");
@@ -66,3 +76,12 @@ class TinaClient implements ITinaClient<AuditableContent> {
 }
 
 export default TinaClient;
+
+
+
+function capitalizeFirstLetter(str: string) : string {    
+  if (str.length === 0) {
+    return "";
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
