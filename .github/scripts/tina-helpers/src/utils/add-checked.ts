@@ -1,5 +1,6 @@
 import path from 'path';
 import { readFile, writeFile, stat as statAsync } from 'fs/promises';
+import Time from '../services/time';
 
 const REPO_ROOT = path.resolve(process.cwd(), '../../..');
 
@@ -46,9 +47,8 @@ async function setLastChecked(filePath: string) {
   }
 
   const raw = await readFile(target, 'utf8');
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  const iso = d.toISOString();
+  
+  const iso = Time.getNow().toISOString();
 
   const { changed, output } = addLastChecked(raw, iso);
   if (changed) {
