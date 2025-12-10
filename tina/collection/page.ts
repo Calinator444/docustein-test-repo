@@ -24,6 +24,13 @@ const Page: Collection = {
   },
   fields: [
     {
+      name: 'lastChecked',
+      type: 'datetime',
+      ui: {
+        component: 'hidden',
+      }
+    },
+    {
       type: 'object',
       list: true,
       name: 'blocks',
