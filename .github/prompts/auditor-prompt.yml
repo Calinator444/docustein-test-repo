@@ -1,4 +1,3 @@
-
 model: mistral-ai/Ministral-3B
 maxTokens: 1000
 responseFormat: json_schema
