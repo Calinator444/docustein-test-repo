@@ -58,7 +58,7 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           max-tokens: 1000
-          system-prompt-file: .github/prompts/auditor.prompt.yml
+          system-prompt-file: '.github/prompts/auditor.prompt.yml'
           prompt: |
             Here is the content of the blog post:
             {{ matrix.item.content }}
