@@ -1,0 +1,33 @@
+messages:
+  - role: system
+    content: {{ prompt }}
+  - role: user
+    content: |-
+      Here is the content of the blog post:
+      {{ blog_post_content }}
+model: mistral-ai/Ministral-3B
+maxTokens: 1000
+responseFormat: json_schema
+jsonSchema: |-
+  {
+    "name": "content_audit_feedback",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "outdated": {
+          "type": "boolean",
+          "description": "Indicates that the cotnent is outdated and needs to be updated"
+        },
+        "suggestions": {
+          "type": "string",
+          "description": "Detailed suggestions for improving the content"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outdated",
+        "suggestions"
+      ]
+    }
+  }
