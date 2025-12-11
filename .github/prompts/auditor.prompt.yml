@@ -1,6 +1,6 @@
+responseFormat: json_schema
 model: mistral-ai/Ministral-3B
 maxTokens: 1000
-responseFormat: json_schema
 jsonSchema: |-
   {
     "name": "content_audit_feedback",
@@ -26,4 +26,8 @@ jsonSchema: |-
   }
 messages:
   - role: system
-    content: {{prompt}}
+    content: {{ prompt }}
+  - role: user
+    content: |- 
+      Here is the content:
+      {{ content }}

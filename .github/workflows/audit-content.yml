@@ -57,13 +57,12 @@ jobs:
         id: call-model
         uses: actions/ai-inference@v2
         with:
+          model: mistral-ai/Ministral-3B
           max-tokens: 1000
-          system-prompt-file: './.github/prompts/auditor.prompt.yml'
-          prompt: |
-            Here is the content of the blog post:
-            {{ matrix.item.content }}
+          prompt-file: .github/prompts/auditor.prompt.yml
           input: |
             prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
+            content: ${{ matrix.item.content }}
             
       - name: "Log Issues"
         uses: actions/github-script@v8
@@ -71,9 +70,8 @@ jobs:
           FILE_PATH: ${{ matrix.item.path }}
           FEEDBACK: ${{ steps.call-model.outputs.response }}
         with: 
-          script:
-
-            const {oudated, suggestions} = JSON.parse(process.env.FEEDBACK);
+          script: |
+            const { outdated, suggestions } = JSON.parse(process.env.FEEDBACK);
             const { owner, repo } = context.repo;
             const title = `🦙 Content audit | ${process.env.FILE_PATH}`;
             const body = [
@@ -84,7 +82,7 @@ jobs:
             ].join('\n');
             const labels = ['🤖 Content Audit'];
 
-            if(!oudated) {
+            if(!outdated) {
               core.info(`Content for ${process.env.FILE_PATH} is up to date. No issue created.`);
               return;
             }
