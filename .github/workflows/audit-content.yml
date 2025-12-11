@@ -27,7 +27,6 @@ jobs:
           cd .github/scripts/tina-helpers
           touch .env
           echo TINA_CONTENT_BRANCH='${{ github.ref_name }}' >> .env
-          echo github.ref_name ${{ github.ref_name }}
           echo TINA_CLIENT_ID=${{ secrets.TINA_CLIENT_ID }} >> .env
           echo TINA_TOKEN=${{ secrets.TINA_TOKEN }} >> .env
           echo TINA_AUDITOR_COLLECTION='${{ vars.TINA_AUDITOR_COLLECTION }}' >> .env
@@ -59,10 +58,13 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           max-tokens: 1000
-          prompt-file: .github/prompts/auditor.prompt.yml
+          system-prompt-file: .github/prompts/auditor.prompt.yml
+          prompt: |
+            Here is the content of the blog post:
+            {{ matrix.item.content }}
           input: |
             prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
-            blog_post_content: ${{ matrix.item.content }}
+            
       - name: "Log Issues"
         uses: actions/github-script@v8
         env:

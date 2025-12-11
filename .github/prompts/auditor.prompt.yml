@@ -10,7 +10,7 @@ jsonSchema: |-
       "properties": {
         "outdated": {
           "type": "boolean",
-          "description": "Indicates that the cotnent is outdated and needs to be updated"
+          "description": "Indicates that the content is outdated and needs to be updated"
         },
         "suggestions": {
           "type": "string",
@@ -27,7 +27,3 @@ jsonSchema: |-
 messages:
   - role: system
     content: {{ prompt }}
-  - role: user
-    content: |-
-      Here is the content of the blog post:
-      {{ blog_post_content }}
