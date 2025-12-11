@@ -1,10 +1,4 @@
-messages:
-  - role: system
-    content: {{ prompt }}
-  - role: user
-    content: |-
-      Here is the content of the blog post:
-      {{ blog_post_content }}
+
 model: mistral-ai/Ministral-3B
 maxTokens: 1000
 responseFormat: json_schema
@@ -31,3 +25,10 @@ jsonSchema: |-
       ]
     }
   }
+messages:
+  - role: system
+    content: {{ prompt }}
+  - role: user
+    content: |-
+      Here is the content of the blog post:
+      {{ blog_post_content }}
