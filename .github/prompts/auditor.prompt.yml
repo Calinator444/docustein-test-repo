@@ -15,7 +15,7 @@ jsonSchema: |-
         "overview": {
           "type": "string",
           "description": "Hightlight how the cotnet performs based on the system prompt criteria"
-        }
+        },
         "suggestions": {
           "type": "string",
           "description": "How you would actionably improve the content based on the system prompt criteria. Not in bullet points."
