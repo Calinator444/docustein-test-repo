@@ -25,7 +25,5 @@ jsonSchema: |-
     }
   }
 messages:
-  - role: system
-    content: "{{ prompt }}"
   - role: user
     content: "Here is the content: {{ content }}"

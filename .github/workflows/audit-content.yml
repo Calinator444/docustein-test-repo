@@ -53,9 +53,8 @@ jobs:
         with:
           model: mistral-ai/Ministral-3B
           max-tokens: 1000
+          system-prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
           prompt-file: .github/prompts/auditor.prompt.yml
-          input: |
-            prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
           file_input: |
             content: ${{ matrix.path }}
             
