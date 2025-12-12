@@ -55,12 +55,13 @@ jobs:
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
           input: |
-            var1: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
+            systemprompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
           file_input: |
             content: ${{ matrix.path }}
       - name: Print AI Output Verbose
         run: |
           echo "Model Response:"
+          echo TINA_AUDITOR_SYSTEM_PROMPT ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT}}
           # Use 'cat' to print the full content of the response file
           cat "${{ steps.call-model.outputs.response-file }}"
             
