@@ -30,4 +30,4 @@ messages:
   - role: user
     content: |- 
       Here is the content:
-      {{ content }}
+      "{{ content }}"
