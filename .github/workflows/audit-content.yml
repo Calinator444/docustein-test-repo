@@ -64,7 +64,7 @@ jobs:
           system-prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
           input: |-
             prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
-            content: ${{ toJson(matrix.item.content) }}
+            content: '${{ toJson(matrix.item.content) }}'
       - name: "Log Issues"
         uses: actions/github-script@v8
         env:
