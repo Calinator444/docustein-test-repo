@@ -54,8 +54,7 @@ jobs:
           max-tokens: 1000
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
-          input: |
-            systemprompt: give me something, just something man
+          system-prompt: give me something, just something man
           file_input: |
             content: ${{ matrix.path }}
       - name: Print AI Output Verbose
