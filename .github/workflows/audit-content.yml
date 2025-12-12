@@ -53,6 +53,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Remove line breaks from content
+        id: fmt-content
+        run: |
+          FORMATTED_CONTENT=$(echo "${{ matrix.item.content }}" | tr '\n' ' ' | sed 's/"/\\"/g')
+          echo "formatted_content=$FORMATTED_CONTENT" >> "$GITHUB_OUTPUT"
       - name: Call Model
         id: call-model
         uses: actions/ai-inference@v2
@@ -62,8 +68,7 @@ jobs:
           prompt-file: .github/prompts/auditor.prompt.yml
           input: |
             prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
-            content: |- 
-              ```${{ matrix.item.content }}```
+            content: ${{ steps.fmt-content.outputs.formatted_content }}
             
       - name: "Log Issues"
         uses: actions/github-script@v8
