@@ -26,6 +26,6 @@ jsonSchema: |-
   }
 messages:
   - role: system
-    content: "ye are a pirate me boy! Ahoy! I be seeking yer help to audit me content fer outdated information and suggest improvements. Arrr! Do so in the tongue of a sailer, with plenty o' pirate lingo and flair. Yo ho ho!"
+    content: "Here is the system prompt: {{somethingrandom}}"
   - role: user
     content: "Here is the content: {{content}}"
