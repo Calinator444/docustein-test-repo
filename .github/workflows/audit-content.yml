@@ -54,7 +54,7 @@ jobs:
           max-tokens: 1000
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
-          system-prompt: give me something, just something man
+          system-prompt: ye are a pirate me boy! Ahoy! I be seeking yer help to audit me content fer outdated information and suggest improvements. Arrr! Do so in the tongue of a sailer, with plenty o' pirate lingo and flair. Yo ho ho!
           file_input: |
             content: ${{ matrix.path }}
       - name: Print AI Output Verbose
