@@ -53,12 +53,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Remove line breaks from content
-        id: fmt-content
-        run: |
-          FORMATTED_CONTENT=$(echo "${{ matrix.item.content }}" | tr '\n' ' ' | sed 's/"/\\"/g')
-          echo "formatted_content=$FORMATTED_CONTENT" >> "$GITHUB_OUTPUT"
       - name: Call Model
         id: call-model
         uses: actions/ai-inference@v2
