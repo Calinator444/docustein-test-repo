@@ -56,6 +56,7 @@ jobs:
           prompt-file: .github/prompts/auditor.prompt.yml
           file_input: |
             content: ${{ matrix.path }}
+            system_prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement. Provide your suggestions in markdown, ensuring that you return line breaks. Ignore the lastChecked date.' }} 
             
       - name: "Log Issues"
         uses: actions/github-script@v8
