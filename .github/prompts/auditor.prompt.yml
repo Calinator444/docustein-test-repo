@@ -27,4 +27,4 @@ messages:
   - role: system
     content: "You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement."
   - role: user
-    content: "Here is the content: {{ content }}"
+    content: "Here is the content: {{content}}"
