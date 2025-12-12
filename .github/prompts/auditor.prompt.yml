@@ -1,5 +1,6 @@
 responseFormat: json_schema
 maxTokens: 1000
+model: mistral-ai/Ministral-3B
 jsonSchema: |-
   {
     "name": "content_audit_feedback",
