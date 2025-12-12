@@ -55,7 +55,7 @@ jobs:
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
           input: |
-            systemprompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement. Provide your suggestions in markdown, ensuring that you return line breaks. Ignore the lastChecked date.' }} 
+            systemprompt: '${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }} '
           file_input: |
             content: ${{ matrix.path }}
             
