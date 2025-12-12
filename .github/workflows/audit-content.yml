@@ -53,6 +53,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Write content to file
+        env:
+          CONTENT: ${{ matrix.item.content }}
+        run: |
+          printf '%s' "$CONTENT" > /tmp/content.md
       - name: Call Model
         id: call-model
         uses: actions/ai-inference@v2
@@ -60,11 +65,11 @@ jobs:
           model: mistral-ai/Ministral-3B
           max-tokens: 1000
           prompt-file: .github/prompts/auditor.prompt.yml
-
-          system-prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
-          input: |-
+          input: |
             prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement.' }}
-            content: '${{ toJson(matrix.item.content) }}'
+          file_input: |
+            content: /tmp/content.md
+            
       - name: "Log Issues"
         uses: actions/github-script@v8
         env:
