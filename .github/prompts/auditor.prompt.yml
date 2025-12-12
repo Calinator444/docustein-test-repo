@@ -1,5 +1,4 @@
 responseFormat: json_schema
-model: mistral-ai/Ministral-3B
 maxTokens: 1000
 jsonSchema: |-
   {
