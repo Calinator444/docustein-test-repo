@@ -12,9 +12,13 @@ jsonSchema: |-
           "type": "boolean",
           "description": "Indicates that the content is outdated and needs to be updated"
         },
+        "overview": {
+          "type": "string",
+          "description": "Hightlight how the cotnet performs based on the system prompt criteria"
+        }
         "suggestions": {
           "type": "string",
-          "description": "Detailed suggestions for improving the content"
+          "description": "How you would actionably improve the content based on the system prompt criteria. Not in bullet points."
         }
       },
       "additionalProperties": false,

@@ -55,7 +55,7 @@ jobs:
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
           input: |
-            somethingrandom: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement. Provide your suggestions in markdown, ensuring that you return line breaks. Ignore the lastChecked date.' }}
+            somethingrandom: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Your task is to review the provided markdown content and provide constructive feedback on its quality, clarity, relevance and engagement. You should highlight and suggest specific areas for improvement. Provide your suggestions in markdown, you must provide line breaks as Ignore the lastChecked date.' }}
           file_input: |
             content: ${{ matrix.path }}            
       - name: "Log Issues"
@@ -65,11 +65,13 @@ jobs:
           FEEDBACK: ${{ steps.call-model.outputs.response }}
         with: 
           script: |
-            const { outdated, suggestions } = JSON.parse(process.env.FEEDBACK);
+            const { outdated, suggestions, overview} = JSON.parse(process.env.FEEDBACK);
             const { owner, repo } = context.repo;
             const title = `🦙 Content audit | ${process.env.FILE_PATH}`;
             const body = [
-              `### Description`,
+              `### Overview`,
+              overview,
+              `### Suggestions`,
               suggestions,
               `### File Location`,
               `${process.env.FILE_PATH}`,
