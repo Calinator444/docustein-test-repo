@@ -52,6 +52,7 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           max-tokens: 1000
+          model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
           file_input: |
             content: ${{ matrix.path }}
