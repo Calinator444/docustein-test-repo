@@ -52,7 +52,6 @@ jobs:
         uses: actions/ai-inference@v2
         with:
           max-tokens: 1000
-          system-prompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT || 'Summarise the file content.' }}
           prompt-file: .github/prompts/auditor.prompt.yml
           file_input: |
             content: ${{ matrix.path }}
