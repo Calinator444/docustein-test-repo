@@ -55,7 +55,7 @@ jobs:
           model: mistral-ai/Ministral-3B
           prompt-file: .github/prompts/auditor.prompt.yml
           input: |
-            systemprompt: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
+            var1: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
           file_input: |
             content: ${{ matrix.path }}
             
