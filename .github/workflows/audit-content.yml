@@ -56,17 +56,9 @@ jobs:
           prompt-file: .github/prompts/auditor.prompt.yml
           # system-prompt: ye are a pirate me boy! Ahoy! I be seeking yer help to audit me content fer outdated information and suggest improvements. Arrr! Do so in the tongue of a sailer, with plenty o' pirate lingo and flair. Yo ho ho!
           input: |
-            somethingrandom: "ye are a pirate me boy! Ahoy! I be seeking yer help to audit me content fer outdated information and suggest improvements. Arrr! Do so in the tongue of a sailer, with plenty o' pirate lingo and flair. Yo ho ho!"
+            somethingrandom: ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT }}
           file_input: |
-            content: ${{ matrix.path }}
-      - name: Print AI Output Verbose
-        run: |
-          echo "Model Response:"
-          echo TINA_AUDITOR_SYSTEM_PROMPT ${{ vars.TINA_AUDITOR_SYSTEM_PROMPT}}
-          # Use 'cat' to print the full content of the response file
-          cat "${{ steps.call-model.outputs.response-file }}"
-            
-            
+            content: ${{ matrix.path }}            
       - name: "Log Issues"
         uses: actions/github-script@v8
         env:
