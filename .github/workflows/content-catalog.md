@@ -2,11 +2,12 @@
 description: >
   Phase 1 of the content catalog pipeline. Scans a content directory for all
   non-archived, non-draft files, extracts their category tags and git history,
-  and creates a tracking issue listing every file with its full metadata.
-  Also creates a custom GitHub label derived from the user's intent so that
-  the downstream agent (Phase 2) can inject it into any issues it raises.
-  Safe to re-run — if an open tracking issue already exists it dispatches
-  Phase 2 immediately without creating a duplicate.
+  and commits a tracking file to a new branch, then opens a pull request.
+  The tracking file lists every file with its full metadata as a task-list so
+  Agent 2 can check off rows as it processes them. Also creates a custom GitHub
+  label derived from the user's intent for Agent 2 to inject into raised issues.
+  Safe to re-run — if an open catalog-tracking PR already exists with unchecked
+  rows it stops immediately without creating duplicates.
 
 on:
   workflow_dispatch:
@@ -29,11 +30,10 @@ on:
 permissions: read-all
 
 safe-outputs:
-  create-issue:
+  create-pull-request:
     title-prefix: "[Content Catalog] "
     labels: ["catalog-tracking"]
     max: 1
-    close-older-issues: false
 
 tools:
   github:
@@ -46,55 +46,39 @@ Work through the steps below in order.
 
 ### Step 1 — Resume check
 
-Search open GitHub issues with the label `catalog-tracking`. If one exists and its body contains any lines beginning with `- [ ]`, a catalog run is already in progress — skip to Step 6 immediately and do not scan files or create a new issue.
+List open pull requests with the label `catalog-tracking`. If one exists and the file `.github/content-catalog/tracking.md` on its head branch contains any lines beginning with `- [ ]`, a catalog run is already in progress — stop immediately and do not scan files or create a new PR.
 
 ### Step 2 — Create the intent label
 
-Create a GitHub label named exactly as the `label_name` input value. Use `#` + the `label_color` input value as the color (e.g. `label_color: e4e669` → color `#e4e669`). Set the description to the `intent` input value.
-
-If a label with that name already exists, skip creation silently.
-
-Use the following bash command:
+Create a GitHub label named exactly as the `label_name` input value, using `#<label_color>` as the color and the `intent` input as the description. Run:
 
 ```bash
 gh label create "$LABEL_NAME" --color "#$LABEL_COLOR" --description "$INTENT" --force
 ```
 
-The `--force` flag updates an existing label rather than failing, so this step is always idempotent.
+The `--force` flag updates an existing label rather than failing, making this step idempotent.
 
 ### Step 3 — Discover all content files
 
 List every `.md` and `.mdx` file under the `collection_path` directory (recursive). For each file:
 
 1. Read its YAML front-matter.
-2. **Skip** the file if it has `archived: true` or `draft: true` in front-matter.
-3. Extract the **CategoryList**: read the `tags` array. Each tag entry is a file reference like `content/tags/tinacms.mdx` — extract just the stem (the part before the `.` extension and after the last `/`). If no tags exist, use `uncategorized`. Join multiple tags with commas.
-4. Run bash to get git history dates:
-   - **Created** — date of the first commit for this file:
+2. **Skip** the file if front-matter contains `archived: true` or `draft: true`.
+3. Extract the **CategoryList**: read the `tags` array. Each tag entry is a file path like `content/tags/tinacms.mdx` — extract just the stem (the filename without extension). If no tags exist, use `uncategorized`. Join multiple stems with commas.
+4. Retrieve git history dates via bash:
+   - **Created** (first commit date):
      ```bash
      git log --follow --format='%as' -- <path> | tail -1
      ```
-   - **LastUpdated** — date of the most recent commit:
+   - **LastUpdated** (most recent commit date):
      ```bash
      git log --follow --format='%as' -1 -- <path>
      ```
-   If git returns no output for a file (e.g. untracked), use `-` for both dates.
+   If git returns no output (untracked file), use `-` for both dates.
 
-### Step 4 — Build the file list
+### Step 4 — Build the tracking file content
 
-Compile all non-skipped files into a task-list. Each row must follow this exact format (no trailing spaces):
-
-```
-- [ ] `<file-path>` | categories: <CategoryList> | created: <Created> | last-updated: <LastUpdated> | checked: - | result: pending
-```
-
-Sort the rows alphabetically by file path as the default order.
-
-### Step 5 — Create the tracking issue
-
-Create a GitHub issue. The title prefix `[Content Catalog] ` is added automatically — write only the `intent` input value as the title body.
-
-Use this exact body structure:
+Compose the full content of the tracking file. Use this exact structure:
 
 ```
 ## Configuration
@@ -108,9 +92,57 @@ Use this exact body structure:
 
 ## Files to Review
 
-<task-list rows from Step 4, one per line>
+<one row per non-skipped file, sorted alphabetically by path>
+- [ ] `<file-path>` | categories: <CategoryList> | created: <Created> | last-updated: <LastUpdated> | checked: - | result: pending
 ```
 
-### Step 6 — Confirm completion
+### Step 5 — Commit the tracking file
 
-After the tracking issue is created (or if one already existed from Step 1), post no further output. The catalog is ready for Phase 2 to process.
+Using bash, create a new branch named `content-catalog/active`, write the tracking file, commit it, and push the branch:
+
+```bash
+git checkout -b content-catalog/active
+mkdir -p .github/content-catalog
+cat > .github/content-catalog/tracking.md << 'TRACKING_EOF'
+<tracking file content from Step 4>
+TRACKING_EOF
+git add .github/content-catalog/tracking.md
+git commit -m "chore: add content catalog tracking file"
+git push origin content-catalog/active
+```
+
+If the branch `content-catalog/active` already exists remotely, force-push to replace it:
+
+```bash
+git push --force origin content-catalog/active
+```
+
+### Step 6 — Open the pull request
+
+Create a pull request from `content-catalog/active` into `main`. The title prefix `[Content Catalog] ` is added automatically — use only the `intent` input as the title body.
+
+Use this exact PR body:
+
+```
+## Intent
+
+<intent input>
+
+## Label for flagged issues
+
+`<label_name input>`
+
+## Tracking file
+
+The full file list with metadata is in `.github/content-catalog/tracking.md` on this branch.
+Agent 2 will check off each row as it processes files and update the `checked` date and `result` fields.
+
+## Configuration
+
+| Field      | Value                     |
+|------------|---------------------------|
+| Intent     | <intent input>            |
+| Label      | `<label_name input>`      |
+| Collection | <collection_path input>   |
+| Created    | <today's ISO timestamp>   |
+```
