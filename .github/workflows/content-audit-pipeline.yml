@@ -1,0 +1,589 @@
+name: Content Audit Pipeline
+run-name: "🔍 Content Audit | ${{ inputs.scope_prompt }} | Top ${{ inputs.content_window }}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Only one pipeline may run at a time.
+# New triggers queue rather than cancel the in-flight run.
+# ─────────────────────────────────────────────────────────────────────────────
+concurrency:
+  group: content-audit-pipeline
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      collection:
+        description: "TinaCMS collection to audit (e.g. post, page)"
+        required: true
+        default: "post"
+        type: string
+      content_window:
+        description: "Max number of documents to pull into scope"
+        required: true
+        default: "20"
+        type: string
+      scope_prompt:
+        description: "What content area to focus on — stored in the tracking file (e.g. 'React best-practices articles')"
+        required: true
+        type: string
+      priority_prompt:
+        description: "How to rank outdatedness — stored in the tracking file (e.g. 'Older created+updated dates = higher priority')"
+        required: true
+        type: string
+      system_prompt:
+        description: "Override the AI auditor system prompt (leave blank to use TINA_AUDITOR_SYSTEM_PROMPT variable or the built-in default)"
+        required: false
+        type: string
+      expiry_days:
+        description: "Content last-checked more than N days ago is eligible for audit"
+        required: false
+        default: "90"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  models: read
+
+env:
+  TRACKING_BRANCH: content-audit/active
+  TRACKING_FILE: .github/content-audit/tracking.md
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 1 — Scope of work
+#
+# • Checks for an existing tracking file with unprocessed (pending) rows.
+#   If found → skips straight to Phase 2, preserving the existing work.
+# • Otherwise → queries TinaCMS for eligible content, writes the tracking
+#   file to the `content-audit/active` branch, and opens a PR.
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  phase1-scope:
+    name: "Phase 1 | Scope of Work"
+    runs-on: ubuntu-latest
+    outputs:
+      skipped: ${{ steps.check.outputs.skipped }}
+      paths: ${{ steps.aggregate.outputs.paths || steps.check.outputs.paths }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+      # ── Check for an in-progress audit ────────────────────────────────────
+      - name: Check for existing tracking file with unprocessed rules
+        id: check
+        run: |
+          if git fetch origin "$TRACKING_BRANCH" 2>/dev/null; then
+            git checkout "$TRACKING_BRANCH"
+
+            if [ -f "$TRACKING_FILE" ] && grep -q "| pending |" "$TRACKING_FILE"; then
+              echo "✅  Existing tracking file found with pending entries — skipping Phase 1"
+              echo "skipped=true" >> "$GITHUB_OUTPUT"
+
+              # Re-expose paths so Phase 2 can use them
+              PATHS=$(
+                grep "| pending |" "$TRACKING_FILE" \
+                  | awk -F'|' '{gsub(/`/,"",$2); print $2}' \
+                  | sed 's/^ //;s/ $//' \
+                  | grep -v '^$' \
+                  | jq -R . | jq -sc .
+              )
+              {
+                echo "paths<<EOF"
+                echo "$PATHS"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            git checkout "${{ github.ref_name }}"
+          fi
+
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+
+      # ── Query TinaCMS ─────────────────────────────────────────────────────
+      - name: Setup PNPM
+        if: steps.check.outputs.skipped == 'false'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Aggregate content paths from TinaCMS
+        id: aggregate
+        if: steps.check.outputs.skipped == 'false'
+        run: |
+          cd .github/scripts/tina-helpers
+          touch .env
+          {
+            echo "TINA_CONTENT_BRANCH=${{ github.ref_name }}"
+            echo "TINA_CLIENT_ID=${{ secrets.TINA_CLIENT_ID }}"
+            echo "TINA_TOKEN=${{ secrets.TINA_TOKEN }}"
+            echo "TINA_AUDITOR_COLLECTION=${{ inputs.collection }}"
+            echo "TINA_AUDITOR_EXPIRY_DAYS=${{ inputs.expiry_days }}"
+            echo "TINA_AUDITOR_CONTENT_WINDOW=${{ inputs.content_window }}"
+          } >> .env
+          pnpm install --frozen-lockfile
+          PATHS=$(pnpm --silent run aggregate-links)
+          {
+            echo "paths<<EOF"
+            echo "$PATHS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Build tracking file ───────────────────────────────────────────────
+      - name: Create tracking branch and tracking file
+        if: steps.check.outputs.skipped == 'false'
+        run: |
+          # Reset / create the tracking branch from the default branch HEAD
+          git checkout -B "$TRACKING_BRANCH"
+
+          mkdir -p "$(dirname "$TRACKING_FILE")"
+
+          {
+            echo "# Content Audit Tracking"
+            echo ""
+            echo "| Meta | Value |"
+            echo "|------|-------|"
+            echo "| **Collection** | \`${{ inputs.collection }}\` |"
+            echo "| **Scope** | ${{ inputs.scope_prompt }} |"
+            echo "| **Priority** | ${{ inputs.priority_prompt }} |"
+            echo "| **Content Window** | ${{ inputs.content_window }} |"
+            echo "| **Expiry Days** | ${{ inputs.expiry_days }} |"
+            echo "| **Run** | [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |"
+            echo "| **Created** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |"
+            echo ""
+            echo "## Files"
+            echo ""
+            echo "| Path | Created | LastUpdated | CheckedDate | Issue | Outcome |"
+            echo "|------|---------|-------------|-------------|-------|---------|"
+          } > "$TRACKING_FILE"
+
+          # Append one row per queried path
+          echo '${{ steps.aggregate.outputs.paths }}' | jq -r '.[]' | while IFS= read -r fp; do
+            CREATED=$(git log --follow --format='%as' -- "$fp" 2>/dev/null | tail -1)
+            UPDATED=$(git log --follow --format='%as' -1  -- "$fp" 2>/dev/null)
+            echo "| \`${fp}\` | ${CREATED:--} | ${UPDATED:--} | - | - | pending |" >> "$TRACKING_FILE"
+          done
+
+      - name: Commit tracking file
+        if: steps.check.outputs.skipped == 'false'
+        run: |
+          git add "$TRACKING_FILE"
+          git commit -m "content-audit[phase-1]: create tracking file — ${{ inputs.scope_prompt }}"
+          git push origin "$TRACKING_BRANCH" --force-with-lease 2>/dev/null \
+            || git push origin "$TRACKING_BRANCH" --force
+
+      - name: Open or update audit PR
+        if: steps.check.outputs.skipped == 'false'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: ${{ env.TRACKING_BRANCH }}
+          base: ${{ github.ref_name }}
+          title: "🔍 Content Audit | ${{ inputs.scope_prompt }}"
+          body: |
+            ## Content Audit Pipeline
+
+            This PR tracks the ongoing content audit and will be updated as each phase completes.
+
+            ### Configuration
+
+            | Setting | Value |
+            |---------|-------|
+            | **Collection** | `${{ inputs.collection }}` |
+            | **Scope** | ${{ inputs.scope_prompt }} |
+            | **Priority** | ${{ inputs.priority_prompt }} |
+            | **Content Window** | ${{ inputs.content_window }} files |
+            | **Expiry Days** | ${{ inputs.expiry_days }} days |
+
+            ### Pipeline Status
+
+            - [x] **Phase 1** — Tracking file created
+            - [ ] **Phase 2** — Files ranked by priority
+            - [ ] **Phase 3** — Issues created; `lastChecked` updated
+
+            ### Workflow Run
+
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "🤖 Content Audit"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 2 — Rules of priority
+#
+# Reads the tracking file and re-sorts the pending rows so that the most
+# outdated content (oldest LastUpdated, then oldest Created) is processed
+# first.  The priority_prompt is stored in the file for reference and is
+# also forwarded to the AI in Phase 3 as additional context.
+# ─────────────────────────────────────────────────────────────────────────────
+  phase2-priority:
+    name: "Phase 2 | Rules of Priority"
+    needs: phase1-scope
+    runs-on: ubuntu-latest
+    outputs:
+      sorted_paths: ${{ steps.sort.outputs.sorted_paths }}
+
+    steps:
+      - name: Checkout tracking branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TRACKING_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+      - name: Sort pending rows by outdatedness
+        id: sort
+        run: |
+          TRACKING="$TRACKING_FILE"
+
+          # Sort pending rows: LastUpdated ASC → Created ASC (lexicographic on ISO dates)
+          python3 - "$TRACKING" "${{ inputs.priority_prompt }}" << 'PY'
+          import sys, re
+
+          tracking_path  = sys.argv[1]
+          priority_prompt = sys.argv[2]
+
+          with open(tracking_path) as fh:
+              lines = fh.readlines()
+
+          before_table, table_header, table_sep, pending_rows, other_rows, after_table = [], [], [], [], [], []
+          state = "before"
+
+          for line in lines:
+              stripped = line.rstrip()
+              if state == "before":
+                  if stripped.startswith("| Path |"):
+                      state = "header"
+                      table_header.append(line)
+                  else:
+                      before_table.append(line)
+              elif state == "header":
+                  if stripped.startswith("|---"):
+                      state = "rows"
+                      table_sep.append(line)
+                  else:
+                      table_header.append(line)
+              elif state == "rows":
+                  if not stripped.startswith("|"):
+                      state = "after"
+                      after_table.append(line)
+                  elif "| pending |" in stripped:
+                      pending_rows.append(line)
+                  else:
+                      other_rows.append(line)
+              else:
+                  after_table.append(line)
+
+          def col(row, idx, fallback="9999-99-99"):
+              parts = row.split("|")
+              val = parts[idx].strip().strip("`") if len(parts) > idx else ""
+              return val if (val and val != "-") else fallback
+
+          # col 2 = Created, col 3 = LastUpdated
+          pending_rows.sort(key=lambda r: (col(r, 3), col(r, 2)))
+
+          with open(tracking_path, "w") as fh:
+              fh.writelines(before_table)
+              fh.writelines(table_header)
+              fh.writelines(table_sep)
+              fh.writelines(pending_rows)
+              fh.writelines(other_rows)
+              fh.writelines(after_table)
+
+          print(f"Sorted {len(pending_rows)} pending entries by: {priority_prompt}")
+          PY
+
+          # Expose sorted paths as JSON array for the Phase 3 matrix
+          SORTED=$(
+            grep "| pending |" "$TRACKING" \
+              | awk -F'|' '{gsub(/`/,"",$2); print $2}' \
+              | sed 's/^ //;s/ $//' \
+              | grep -v '^$' \
+              | jq -R . | jq -sc .
+          )
+          {
+            echo "sorted_paths<<EOF"
+            echo "$SORTED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Commit sorted tracking file
+        run: |
+          git add "$TRACKING_FILE"
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "content-audit[phase-2]: sort by priority — ${{ inputs.priority_prompt }}"
+          git push origin "$TRACKING_BRANCH"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 3 — Audit & issue creation  (sequential matrix, one file at a time)
+#
+# For each file in priority order:
+#   1. Run the AI auditor.
+#   2. Create a GitHub issue (labelled `audit-pending`) when outdated.
+#   3. Update the tracking file row with CheckedDate / Issue / Outcome.
+#   4. Commit the tracking file so the next matrix job sees the updated state.
+# ─────────────────────────────────────────────────────────────────────────────
+  phase3-audit:
+    name: "Phase 3 | Audit: ${{ matrix.path }}"
+    needs: [phase1-scope, phase2-priority]
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1           # Sequential — prevents tracking-file write conflicts
+      fail-fast: false          # Finish remaining audits even if one fails
+      matrix:
+        path: ${{ fromJson(needs.phase2-priority.outputs.sorted_paths) }}
+
+    steps:
+      - name: Checkout tracking branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TRACKING_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+      # Pull latest to pick up any commits from earlier matrix iterations
+      - name: Pull latest tracking branch state
+        run: git pull --rebase origin "$TRACKING_BRANCH"
+
+      # Fetch the actual content file from the default branch
+      - name: Fetch content file
+        run: |
+          git fetch origin "${{ github.ref_name }}"
+          git checkout "origin/${{ github.ref_name }}" -- "${{ matrix.path }}"
+
+      - name: AI Content Audit
+        id: audit
+        uses: actions/ai-inference@v2
+        with:
+          max-tokens: 1000
+          model: mistral-ai/Ministral-3B
+          prompt-file: .github/prompts/auditor.prompt.yml
+          input: |
+            somethingrandom: ${{ inputs.system_prompt || vars.TINA_AUDITOR_SYSTEM_PROMPT || 'You are an expert content auditor. Review the provided markdown content and give constructive feedback on quality, clarity, relevance, and engagement. Suggest specific improvements in markdown. Ignore the lastChecked date.' }}
+          file_input: |
+            content: ${{ matrix.path }}
+
+      - name: Create issue if outdated
+        id: issue
+        uses: actions/github-script@v8
+        env:
+          FILE_PATH: ${{ matrix.path }}
+          FEEDBACK: ${{ steps.audit.outputs.response }}
+          SCOPE_PROMPT: ${{ inputs.scope_prompt }}
+          PRIORITY_PROMPT: ${{ inputs.priority_prompt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            let parsed;
+            try {
+              parsed = JSON.parse(process.env.FEEDBACK);
+            } catch (e) {
+              core.warning(`Failed to parse AI response for ${process.env.FILE_PATH}: ${e.message}`);
+              core.setOutput('issue_number', '');
+              core.setOutput('outcome', 'error');
+              return;
+            }
+
+            const { outdated, suggestions, overview } = parsed;
+            const { owner, repo } = context.repo;
+            const filePath = process.env.FILE_PATH;
+
+            if (!outdated) {
+              core.info(`✅  ${filePath} is up to date — no issue created`);
+              core.setOutput('issue_number', '');
+              core.setOutput('outcome', 'up-to-date');
+              return;
+            }
+
+            const body = [
+              `### Overview`,
+              overview || '_No overview provided_',
+              ``,
+              `### Suggestions`,
+              suggestions,
+              ``,
+              `### Audit Context`,
+              `- **Scope:** ${process.env.SCOPE_PROMPT}`,
+              `- **Priority:** ${process.env.PRIORITY_PROMPT}`,
+              ``,
+              `### File`,
+              `\`${filePath}\``,
+              ``,
+              `### Run`,
+              process.env.RUN_URL,
+            ].join('\n');
+
+            const res = await github.rest.issues.create({
+              owner,
+              repo,
+              title: `🦙 Content Audit | ${filePath}`,
+              body,
+              labels: ['🤖 Content Audit', 'audit-pending'],
+            });
+
+            core.info(`Created issue #${res.data.number} for ${filePath}`);
+            core.setOutput('issue_number', String(res.data.number));
+            core.setOutput('outcome', 'outdated');
+
+      - name: Update tracking file row
+        env:
+          FILE_PATH: ${{ matrix.path }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
+          OUTCOME: ${{ steps.issue.outputs.outcome }}
+        run: |
+          CHECKED=$(date -u +%Y-%m-%d)
+          ISSUE_REF="${ISSUE_NUMBER:--}"
+          [ -n "$ISSUE_NUMBER" ] && ISSUE_REF="#${ISSUE_NUMBER}"
+
+          python3 - "$TRACKING_FILE" "$FILE_PATH" "$CHECKED" "$ISSUE_REF" "$OUTCOME" << 'PY'
+          import sys, re
+
+          tracking, fp, checked, issue_ref, outcome = sys.argv[1:6]
+          escaped = re.escape(fp)
+
+          with open(tracking) as fh:
+              content = fh.read()
+
+          # Match the pending row for this exact file path
+          pattern = re.compile(
+              r'(\|\s*`?' + escaped + r'`?\s*\|)([^|]+\|[^|]+\|) - \| - \| pending \|'
+          )
+
+          def replace_row(m):
+              return f"{m.group(1)}{m.group(2)} {checked} | {issue_ref} | {outcome} |"
+
+          new_content, count = pattern.subn(replace_row, content)
+
+          if count == 0:
+              print(f"WARNING: no pending row found for {fp}", file=sys.stderr)
+          else:
+              with open(tracking, "w") as fh:
+                  fh.write(new_content)
+              print(f"Updated tracking row: {fp} → {outcome}")
+          PY
+
+      - name: Commit tracking file update
+        run: |
+          git add "$TRACKING_FILE"
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "content-audit[phase-3]: audit '${{ matrix.path }}' → ${{ steps.issue.outputs.outcome }}"
+          git push origin "$TRACKING_BRANCH"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 3 (finalise) — Update `lastChecked` in content files and update PR
+#
+# Runs after all audit matrix jobs.  Updates the `lastChecked` front-matter
+# field in every audited content file so they won't be re-queued next run.
+# ─────────────────────────────────────────────────────────────────────────────
+  phase3-finalize:
+    name: "Phase 3 | Finalize & Update PR"
+    needs: [phase2-priority, phase3-audit]
+    if: always() && needs.phase2-priority.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tracking branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TRACKING_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+      - name: Pull latest state
+        run: git pull --rebase origin "$TRACKING_BRANCH"
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Fetch audited content files from default branch
+        run: |
+          git fetch origin "${{ github.ref_name }}"
+
+          # Collect all paths that have been processed (not pending, not header/separator)
+          AUDITED=$(
+            grep -v "| pending |" "$TRACKING_FILE" \
+              | grep "^|" \
+              | grep -v "^| Path |" \
+              | grep -v "^|---" \
+              | grep -v "^| Meta |" \
+              | awk -F'|' '{gsub(/`/,"",$2); print $2}' \
+              | sed 's/^ //;s/ $//' \
+              | grep -v '^$'
+          )
+
+          if [ -z "$AUDITED" ]; then
+            echo "No audited files to update."
+            exit 0
+          fi
+
+          echo "$AUDITED" | while IFS= read -r fp; do
+            git checkout "origin/${{ github.ref_name }}" -- "$fp" 2>/dev/null || \
+              echo "WARNING: could not checkout $fp"
+          done
+
+          echo "AUDITED_PATHS=$(echo "$AUDITED" | jq -R . | jq -sc .)" >> "$GITHUB_ENV"
+
+      - name: Update lastChecked in content files
+        if: env.AUDITED_PATHS != '[]' && env.AUDITED_PATHS != ''
+        run: |
+          pnpm --dir=.github/scripts/tina-helpers install --frozen-lockfile
+          pnpm --dir=.github/scripts/tina-helpers run update-checked "$AUDITED_PATHS"
+
+      - name: Commit updated content files
+        run: |
+          git add .
+          git diff --staged --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "content-audit[phase-3]: update lastChecked for audited files"
+          git push origin "$TRACKING_BRANCH"
+
+      - name: Mark Phase 2 & Phase 3 complete in PR description
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = process.env.TRACKING_BRANCH;
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo,
+              head: `${owner}:${branch}`,
+              state: 'open',
+            });
+
+            if (!prs.length) {
+              core.info('No open audit PR found — nothing to update');
+              return;
+            }
+
+            const pr = prs[0];
+            const updated = (pr.body || '')
+              .replace('- [ ] **Phase 2**', '- [x] **Phase 2**')
+              .replace('- [ ] **Phase 3**', '- [x] **Phase 3**');
+
+            await github.rest.pulls.update({
+              owner, repo,
+              pull_number: pr.number,
+              body: updated,
+            });
+            core.info(`PR #${pr.number} description updated`);

@@ -1,0 +1,49 @@
+responseFormat: json_schema
+maxTokens: 2000
+model: mistral-ai/Ministral-3B
+jsonSchema: |-
+  {
+    "name": "deep_content_analysis",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "A concise summary of the content's current state, what is outdated, and why it needs attention. Written in markdown."
+        },
+        "action_items": {
+          "type": "string",
+          "description": "A numbered list of concrete, specific action items a writer should follow to bring the content up to date. Written in markdown."
+        },
+        "estimated_effort": {
+          "type": "string",
+          "description": "A brief estimate of the effort required: Small (< 1 hour), Medium (1-4 hours), or Large (> 4 hours), with a short justification."
+        },
+        "references": {
+          "type": "string",
+          "description": "Optional. Topics or documentation the writer should consult when updating the content. Leave empty string if none."
+        }
+      },
+      "additionalProperties": false,
+      "required": ["summary", "action_items", "estimated_effort", "references"]
+    }
+  }
+messages:
+  - role: system
+    content: |
+      You are a senior content strategist performing a deep audit of a piece of content that has already been flagged as outdated.
+
+      The audit issue is: {{issue_title}}
+
+      Your job is to produce a detailed, actionable analysis that a writer can use to update the content.
+      Focus on:
+      - Specific outdated facts, terminology, or code examples
+      - Missing sections that modern readers would expect
+      - Structural or clarity improvements
+      - Concrete, numbered action items (not vague suggestions)
+      - An honest effort estimate
+
+      Respond only with the JSON schema — no additional text.
+  - role: user
+    content: "Here is the current content of the file to audit:\n\n{{content}}"
