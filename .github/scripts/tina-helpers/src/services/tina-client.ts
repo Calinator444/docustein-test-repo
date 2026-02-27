@@ -20,6 +20,8 @@ class TinaClient implements ITinaClient<AuditableContent> {
     async getContent(props? : {first?: number, before?: string}) {
 
     const collection = process.env.TINA_AUDITOR_COLLECTION;
+    
+    const branch= process.env.TINA_CONTENT_BRANCH || 'main';
 
     if(!collection) {
         console.error("Error: TINA_AUDITOR_COLLECTION is not set in environment variables.");
@@ -51,7 +53,7 @@ class TinaClient implements ITinaClient<AuditableContent> {
         }}
     }
     
-    const response = await fetch(`https://content.tinajs.io/1.6/content/${this._tinaClientId}/github/main`, {
+    const response = await fetch(`https://content.tinajs.io/1.6/content/${this._tinaClientId}/github/${branch}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

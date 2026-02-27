@@ -1,0 +1,35 @@
+responseFormat: json_schema
+maxTokens: 1000
+model: mistral-ai/Ministral-3B
+jsonSchema: |-
+  {
+    "name": "content_audit_feedback",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "outdated": {
+          "type": "boolean",
+          "description": "Indicates that the content is outdated and needs to be updated"
+        },
+        "overview": {
+          "type": "string",
+          "description": "Hightlight how the cotnet performs based on the system prompt criteria"
+        },
+        "suggestions": {
+          "type": "string",
+          "description": "How you would actionably improve the content based on the system prompt criteria. Not in bullet points."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outdated",
+        "suggestions"
+      ]
+    }
+  }
+messages:
+  - role: system
+    content: "Here is the system prompt: {{somethingrandom}}"
+  - role: user
+    content: "Here is the content: {{content}}"

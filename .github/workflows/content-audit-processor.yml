@@ -1,0 +1,188 @@
+name: Content Audit Processor (Phase 4)
+run-name: "🤖 Audit Processor | Issue #${{ github.event.issue.number }}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 4 — Second agent
+#
+# Triggered automatically whenever an issue is labelled `audit-pending`.
+# The agent reads the issue body (which contains the file path and the initial
+# AI feedback), performs a deeper analysis of the content, posts a detailed
+# comment, and transitions the issue label from `audit-pending` → `audit-processed`.
+#
+# Archived issues are excluded: if the issue is already closed/archived when
+# this workflow runs, the job exits gracefully.
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+  models: read
+
+jobs:
+  process-issue:
+    name: "Process Issue #${{ github.event.issue.number }}"
+    # Only run when the triggering label is `audit-pending` and the issue is open
+    if: |
+      github.event.label.name == 'audit-pending' &&
+      github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+
+      # ── Extract file path from issue body ──────────────────────────────────
+      - name: Extract file path from issue
+        id: extract
+        uses: actions/github-script@v8
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        with:
+          script: |
+            const body = process.env.ISSUE_BODY || '';
+
+            // The pipeline writes the file path after "### File" section
+            const match = body.match(/###\s+File\s*\n+`([^`]+)`/);
+            if (!match) {
+              core.setFailed('Could not extract file path from issue body');
+              return;
+            }
+
+            const filePath = match[1].trim();
+            core.info(`File path: ${filePath}`);
+            core.setOutput('file_path', filePath);
+
+      # ── Read the content file ──────────────────────────────────────────────
+      - name: Verify content file exists
+        id: verify
+        run: |
+          FP="${{ steps.extract.outputs.file_path }}"
+          if [ ! -f "$FP" ]; then
+            echo "WARNING: File not found: $FP"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Deep AI analysis ───────────────────────────────────────────────────
+      - name: Deep AI analysis
+        id: analysis
+        if: steps.verify.outputs.exists == 'true'
+        uses: actions/ai-inference@v2
+        with:
+          max-tokens: 2000
+          model: mistral-ai/Ministral-3B
+          prompt-file: .github/prompts/audit-processor.prompt.yml
+          input: |
+            issue_title: ${{ github.event.issue.title }}
+          file_input: |
+            content: ${{ steps.extract.outputs.file_path }}
+
+      # ── Post analysis comment ──────────────────────────────────────────────
+      - name: Post analysis comment
+        uses: actions/github-script@v8
+        env:
+          FILE_PATH: ${{ steps.extract.outputs.file_path }}
+          FILE_EXISTS: ${{ steps.verify.outputs.exists }}
+          ANALYSIS: ${{ steps.analysis.outputs.response }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+            const fileExists = process.env.FILE_EXISTS === 'true';
+
+            let body;
+
+            if (!fileExists) {
+              body = [
+                `## 🤖 Content Audit Processor`,
+                ``,
+                `> ⚠️  The content file \`${process.env.FILE_PATH}\` could not be found in this branch.`,
+                `> This issue may have been created from a different branch or the file has been moved/deleted.`,
+                ``,
+                `**Action required:** Please verify the file path and close this issue if it is no longer valid.`,
+              ].join('\n');
+            } else {
+              let parsed;
+              try {
+                parsed = JSON.parse(process.env.ANALYSIS);
+              } catch (e) {
+                core.warning(`Failed to parse analysis JSON: ${e.message}`);
+                parsed = { summary: process.env.ANALYSIS };
+              }
+
+              const {
+                summary = '_No summary provided_',
+                action_items = '_No action items provided_',
+                estimated_effort = '_Unknown_',
+                references = '',
+              } = parsed;
+
+              body = [
+                `## 🤖 Deep Content Analysis`,
+                ``,
+                `> This is a detailed follow-up analysis performed by the **Content Audit Processor** (Phase 4).`,
+                ``,
+                `### Summary`,
+                summary,
+                ``,
+                `### Action Items`,
+                action_items,
+                ``,
+                `### Estimated Effort`,
+                estimated_effort,
+              ];
+
+              if (references) {
+                body.push('', '### References / Further Reading', references);
+              }
+
+              body.push('', `---`, `_Processed by [workflow run](${process.env.RUN_URL})_`);
+              body = body.join('\n');
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: issueNumber, body });
+            core.info(`Posted analysis comment on issue #${issueNumber}`);
+
+      # ── Transition labels ──────────────────────────────────────────────────
+      - name: Transition label audit-pending → audit-processed
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            // Ensure audit-processed label exists
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: 'audit-processed' });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner, repo,
+                name: 'audit-processed',
+                color: '0075ca',
+                description: 'Content audit has been fully processed',
+              });
+            }
+
+            // Remove audit-pending, add audit-processed
+            try {
+              await github.rest.issues.removeLabel({
+                owner, repo,
+                issue_number: issueNumber,
+                name: 'audit-pending',
+              });
+            } catch (e) {
+              core.info(`audit-pending label not present or already removed: ${e.message}`);
+            }
+
+            await github.rest.issues.addLabels({
+              owner, repo,
+              issue_number: issueNumber,
+              labels: ['audit-processed'],
+            });
+
+            core.info(`Issue #${issueNumber}: audit-pending → audit-processed`);
