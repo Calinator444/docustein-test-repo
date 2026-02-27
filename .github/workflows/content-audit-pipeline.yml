@@ -185,36 +185,61 @@ jobs:
 
       - name: Open or update audit PR
         if: steps.check.outputs.skipped == 'false'
-        uses: peter-evans/create-pull-request@v6
+        uses: actions/github-script@v8
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          branch: ${{ env.TRACKING_BRANCH }}
-          base: ${{ github.ref_name }}
-          title: "🔍 Content Audit | ${{ inputs.scope_prompt }}"
-          body: |
-            ## Content Audit Pipeline
+          script: |
+            const { owner, repo } = context.repo;
+            const head = `${owner}:${process.env.TRACKING_BRANCH}`;
+            const base = '${{ github.ref_name }}';
 
-            This PR tracks the ongoing content audit and will be updated as each phase completes.
+            const title = '🔍 Content Audit | ${{ inputs.scope_prompt }}';
+            const body = [
+              '## Content Audit Pipeline',
+              '',
+              'This PR tracks the ongoing content audit and will be updated as each phase completes.',
+              '',
+              '### Configuration',
+              '',
+              '| Setting | Value |',
+              '|---------|-------|',
+              '| **Collection** | `${{ inputs.collection }}` |',
+              '| **Scope** | ${{ inputs.scope_prompt }} |',
+              '| **Priority** | ${{ inputs.priority_prompt }} |',
+              '| **Content Window** | ${{ inputs.content_window }} files |',
+              '| **Expiry Days** | ${{ inputs.expiry_days }} days |',
+              '',
+              '### Pipeline Status',
+              '',
+              '- [x] **Phase 1** — Tracking file created',
+              '- [ ] **Phase 2** — Files ranked by priority',
+              '- [ ] **Phase 3** — Issues created; `lastChecked` updated',
+              '',
+              '### Workflow Run',
+              '',
+              process.env.RUN_URL,
+            ].join('\n');
 
-            ### Configuration
+            // Check for an existing open PR from this branch
+            const { data: existing } = await github.rest.pulls.list({
+              owner, repo, head, state: 'open',
+            });
 
-            | Setting | Value |
-            |---------|-------|
-            | **Collection** | `${{ inputs.collection }}` |
-            | **Scope** | ${{ inputs.scope_prompt }} |
-            | **Priority** | ${{ inputs.priority_prompt }} |
-            | **Content Window** | ${{ inputs.content_window }} files |
-            | **Expiry Days** | ${{ inputs.expiry_days }} days |
-
-            ### Pipeline Status
-
-            - [x] **Phase 1** — Tracking file created
-            - [ ] **Phase 2** — Files ranked by priority
-            - [ ] **Phase 3** — Issues created; `lastChecked` updated
-
-            ### Workflow Run
-
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          labels: "🤖 Content Audit"
+            if (existing.length > 0) {
+              await github.rest.pulls.update({
+                owner, repo, pull_number: existing[0].number, title, body,
+              });
+              core.info(`Updated PR #${existing[0].number}`);
+            } else {
+              const { data: pr } = await github.rest.pulls.create({
+                owner, repo, title, body, head, base,
+              });
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: pr.number, labels: ['🤖 Content Audit'],
+              });
+              core.info(`Created PR #${pr.number}`);
+            }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE 2 — Rules of priority
