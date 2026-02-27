@@ -26,7 +26,7 @@
 | `content/posts/learning-to-blog.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/personal-finance-money-management.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/productivity-hacks-time-management.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | #286 | outdated |
-| `content/posts/startup-guide-entrepreneurs.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
+| `content/posts/startup-guide-entrepreneurs.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/sustainable-living-trends-2025.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
 | `content/posts/travel-tips-adventure-guide.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
 | `content/posts/web-development-beginners-guide.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
