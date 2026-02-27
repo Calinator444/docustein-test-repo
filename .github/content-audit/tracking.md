@@ -19,7 +19,7 @@
 | `content/posts/future-of-remote-work-2025.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/holistic-health-wellness-guide.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/june/learning-about-tinacloud.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
-| `content/posts/learning-about-components.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
+| `content/posts/learning-about-components.mdx` | 2025-11-27 | 2025-12-12 | 2026-02-27 | - | up-to-date |
 | `content/posts/learning-about-markdown.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
 | `content/posts/learning-about-mermaid.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
 | `content/posts/learning-about-tinacms.mdx` | 2025-11-27 | 2025-12-12 | - | - | pending |
