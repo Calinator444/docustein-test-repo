@@ -40,15 +40,8 @@ tools:
     toolsets: [default]
 ---
 
-## Phase 1 — Build the Content Catalog
 
-Work through the steps below in order.
-
-### Step 1 — Resume check
-
-List open pull requests with the label `catalog-tracking`. If one exists and the file `.github/content-catalog/tracking.md` on its head branch contains any lines beginning with `- [ ]`, a catalog run is already in progress — stop immediately and do not scan files or create a new PR.
-
-### Step 2 — Create the intent label
+### Step 1 — Create the intent label
 
 Create a GitHub label named exactly as the `label_name` input value, using `#<label_color>` as the color and the `intent` input as the description. Run:
 
@@ -58,7 +51,7 @@ gh label create "$LABEL_NAME" --color "#$LABEL_COLOR" --description "$INTENT" --
 
 The `--force` flag updates an existing label rather than failing, making this step idempotent.
 
-### Step 3 — Discover all content files
+### Step 2 — Discover all content files
 
 List every `.md` and `.mdx` file under the `collection_path` directory (recursive). For each file:
 
@@ -76,9 +69,9 @@ List every `.md` and `.mdx` file under the `collection_path` directory (recursiv
      ```
    If git returns no output (untracked file), use `-` for both dates.
 
-### Step 4 — Build the tracking file content
+### Step 3 — Write the tracking file
 
-Compose the full content of the tracking file. Use this exact structure:
+Create the file `.github/content-catalog/tracking.md` using the edit tool. Its content must follow this exact structure:
 
 ```
 ## Configuration
@@ -96,28 +89,7 @@ Compose the full content of the tracking file. Use this exact structure:
 - [ ] `<file-path>` | categories: <CategoryList> | created: <Created> | last-updated: <LastUpdated> | checked: - | result: pending
 ```
 
-### Step 5 — Commit the tracking file
-
-Using bash, create a new branch named `content-catalog/active`, write the tracking file, commit it, and push the branch:
-
-```bash
-git checkout -b content-catalog/active
-mkdir -p .github/content-catalog
-cat > .github/content-catalog/tracking.md << 'TRACKING_EOF'
-<tracking file content from Step 4>
-TRACKING_EOF
-git add .github/content-catalog/tracking.md
-git commit -m "chore: add content catalog tracking file"
-git push origin content-catalog/active
-```
-
-If the branch `content-catalog/active` already exists remotely, force-push to replace it:
-
-```bash
-git push --force origin content-catalog/active
-```
-
-### Step 6 — Open the pull request
+### Step 4 — Open the pull request
 
 Create a pull request from `content-catalog/active` into `main`. The title prefix `[Content Catalog] ` is added automatically — use only the `intent` input as the title body.
 
