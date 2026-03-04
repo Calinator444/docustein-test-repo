@@ -23,16 +23,12 @@
 #
 # Phase 1 of the content catalog pipeline. Scans a content directory for all non-archived, non-draft files, extracts their category tags and git history, and commits a tracking file to a new branch, then opens a pull request. The tracking file lists every file with its full metadata as a task-list so Agent 2 can check off rows as it processes them. Also creates a custom GitHub label derived from the user's intent for Agent 2 to inject into raised issues. Safe to re-run — if an open catalog-tracking PR already exists with unchecked rows it stops immediately without creating duplicates.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"2b7672995acd1dc3fbfb897ce0987ba02343dd5912c91b02a9d7ca4cca52f258","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e16a32ca6e4171fef10b2ca97fa3e756d8e4792d271453ef82e4e7c9f2f372f9","compiler_version":"v0.50.5"}
 
 name: "Content Catalog"
 "on":
   workflow_dispatch:
     inputs:
-      collection_path:
-        default: content/posts
-        description: Repo path to scan for .md/.mdx content files
-        required: false
       intent:
         description: What Agent 2 should look for (e.g. 'archive all legacy TFS version-control posts')
         required: true
