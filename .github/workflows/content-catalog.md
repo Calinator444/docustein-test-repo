@@ -41,7 +41,21 @@ tools:
 ---
 
 
-### Step 1 — Create the intent label
+
+<!-- Testing changes to steps -->
+### Step 1 - Create the file
+
+Create the file `.github/content-catalog/tracking.md` and add the title "This is a test" to it.
+
+
+### Step 2
+
+Create a pull request against the `main` branch using a branch called `content-catalog/testing`. Include the file created in step 1 in the PR.
+
+
+<!-- End testing changes to steps -->
+
+<!-- ### Step 1 — Create the intent label
 
 Create a GitHub label named exactly as the `label_name` input value, using `#<label_color>` as the color and the `intent` input as the description. Run:
 
@@ -67,9 +81,9 @@ List every `.md` and `.mdx` file under the `collection_path` directory (recursiv
      ```bash
      git log --follow --format='%as' -1 -- <path>
      ```
-   If git returns no output (untracked file), use `-` for both dates.
+   If git returns no output (untracked file), use `-` for both dates. -->
 
-### Step 3 — Write the tracking file
+<!-- ### Step 3 — Write the tracking file
 
 Create the file `.github/content-catalog/tracking.md` using the edit tool. Its content must follow this exact structure:
 
@@ -87,9 +101,9 @@ Create the file `.github/content-catalog/tracking.md` using the edit tool. Its c
 
 <one row per non-skipped file, sorted alphabetically by path>
 - [ ] `<file-path>` | categories: <CategoryList> | created: <Created> | last-updated: <LastUpdated> | checked: - | result: pending
-```
+``` -->
 
-### Step 4 — Open the pull request
+<!-- ### Step 4 — Open the pull request
 
 Create a pull request from `content-catalog/active` into `main`. The title prefix `[Content Catalog] ` is added automatically — use only the `intent` input as the title body.
 
@@ -117,4 +131,4 @@ Agent 2 will check off each row as it processes files and update the `checked` d
 | Label      | `<label_name input>`      |
 | Collection | <collection_path input>   |
 | Created    | <today's ISO timestamp>   |
-```
+``` -->
