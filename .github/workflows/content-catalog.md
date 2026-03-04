@@ -52,7 +52,7 @@ Then add a json file to it with the following:
 
 ```
 {
-  "original_intent": "<intent>",
+  "original_intent": `${{ inputs.intent }}`,
 }
 
 ```
