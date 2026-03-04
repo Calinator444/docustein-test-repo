@@ -22,10 +22,10 @@ on:
         description: "Hex color for the label, without the # prefix (e.g. 'e4e669')"
         required: false
         default: "e4e669"
-      collection_path:
-        description: "Repo path to scan for .md/.mdx content files"
-        required: false
-        default: "content/posts"
+      # collection_path:
+      #   description: "Repo path to scan for .md/.mdx content files"
+      #   required: false
+      #   default: "content/posts"
 
 permissions: read-all
 
@@ -42,17 +42,41 @@ tools:
 
 
 
-<!-- Testing changes to steps -->
-### Step 1 - Create the file
+<!-- TODO - this part of the flow may not need to be agentic -->
+<!-- It's only creating a json file with all files in the repo -->
+### Step 1 - Cataloging
 
-Create the file `.github/content-catalog/tracking.md` and add the title "This is a test" to it.
+Create a json file in the folder .github/content-hawk/todo/ with the name <intent_name>.json
+
+Then add a json file to it with the following:
+
+```
+{
+  "original_intent": "<intent>",
+}
+
+```
+Catalog all files in the repo based on the path <collection_path>
+
 
 
 ### Step 2
 
-Create a pull request against the `main` branch using a branch called `content-catalog/testing`. Include the file created in step 1 in the PR.
+
+Agregate all markdown files in the repo in the `content` folder. Once you've aggregated all of these files add a new property to the json file created in step 1 with the following format:
+
+{
+  "files": [
+    {
+      "path": "<file_path>",
+    },
+  ]
+}
 
 
+### Step 3
+
+Create a pull request with the title [Content Catalog] <intent> using a branch called content-hawk/todo/<intent_name>. Include the file created in step 1 in the pull request.
 <!-- End testing changes to steps -->
 
 <!-- ### Step 1 — Create the intent label
