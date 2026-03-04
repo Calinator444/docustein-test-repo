@@ -56,7 +56,6 @@ Then add a json file to it with the following:
 }
 
 ```
-Catalog all files in the repo based on the path <collection_path>
 
 
 
