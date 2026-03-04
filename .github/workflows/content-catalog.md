@@ -15,13 +15,12 @@ on:
       intent:
         description: "What Agent 2 should look for (e.g. 'archive all legacy TFS version-control posts')"
         required: true
+      search_scope:
+        description: "The category of markdown files the agent should focus on. For example, if your content repo has both 'posts' and 'docs' directories, you might set this to 'posts' to focus only on blog articles. You may also use things like category or archive status as filtering criteria."
+        required: true
       label_name:
         description: "GitHub label slug to attach to flagged issues (e.g. 'archive-legacy-rules')"
         required: true
-      label_color:
-        description: "Hex color for the label, without the # prefix (e.g. 'e4e669')"
-        required: false
-        default: "e4e669"
       # collection_path:
       #   description: "Repo path to scan for .md/.mdx content files"
       #   required: false
@@ -40,10 +39,6 @@ tools:
     toolsets: [default]
 ---
 
-
-
-<!-- TODO - this part of the flow may not need to be agentic -->
-<!-- It's only creating a json file with all files in the repo -->
 ### Step 1 - Cataloging
 
 Create a json file in the folder .github/content-hawk/todo/ with the name <intent_name>.json
@@ -57,12 +52,16 @@ Then add a json file to it with the following:
 
 ```
 
-
-
 ### Step 2
 
 
-Agregate all markdown files in the repo in the `content` folder. Once you've aggregated all of these files add a new property to the json file created in step 1 with the following format:
+Use the following criteria to aggregate a list of markdown files in this repository:
+
+
+```
+  ${{ inputs.search_scope }}
+```
+Once you've aggregated all of these files, add a new property to the json file created in step 1 with the following format:
 
 {
   "files": [

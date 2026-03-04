@@ -23,7 +23,7 @@
 #
 # Phase 1 of the content catalog pipeline. Scans a content directory for all non-archived, non-draft files, extracts their category tags and git history, and commits a tracking file to a new branch, then opens a pull request. The tracking file lists every file with its full metadata as a task-list so Agent 2 can check off rows as it processes them. Also creates a custom GitHub label derived from the user's intent for Agent 2 to inject into raised issues. Safe to re-run — if an open catalog-tracking PR already exists with unchecked rows it stops immediately without creating duplicates.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e16a32ca6e4171fef10b2ca97fa3e756d8e4792d271453ef82e4e7c9f2f372f9","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"ecc7249e8da116a9de0a66e79294c4dbf3f27a4c2dec8a6eb7758235d69147f5","compiler_version":"v0.50.5"}
 
 name: "Content Catalog"
 "on":
@@ -32,12 +32,11 @@ name: "Content Catalog"
       intent:
         description: What Agent 2 should look for (e.g. 'archive all legacy TFS version-control posts')
         required: true
-      label_color:
-        default: e4e669
-        description: "Hex color for the label, without the # prefix (e.g. 'e4e669')"
-        required: false
       label_name:
         description: GitHub label slug to attach to flagged issues (e.g. 'archive-legacy-rules')
+        required: true
+      search_scope:
+        description: The category of markdown files the agent should focus on. For example, if your content repo has both 'posts' and 'docs' directories, you might set this to 'posts' to focus only on blog articles. You may also use things like category or archive status as filtering criteria.
         required: true
 
 permissions: {}
@@ -105,6 +104,7 @@ jobs:
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
           GH_AW_INPUTS_INTENT: ${{ inputs.intent }}
+          GH_AW_INPUTS_SEARCH_SCOPE: ${{ inputs.search_scope }}
         run: |
           bash /opt/gh-aw/actions/create_prompt_first.sh
           {
@@ -163,6 +163,7 @@ jobs:
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
           GH_AW_INPUTS_INTENT: ${{ inputs.intent }}
+          GH_AW_INPUTS_SEARCH_SCOPE: ${{ inputs.search_scope }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -182,6 +183,7 @@ jobs:
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
           GH_AW_INPUTS_INTENT: ${{ inputs.intent }}
+          GH_AW_INPUTS_SEARCH_SCOPE: ${{ inputs.search_scope }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -201,7 +203,8 @@ jobs:
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
                 GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
-                GH_AW_INPUTS_INTENT: process.env.GH_AW_INPUTS_INTENT
+                GH_AW_INPUTS_INTENT: process.env.GH_AW_INPUTS_INTENT,
+                GH_AW_INPUTS_SEARCH_SCOPE: process.env.GH_AW_INPUTS_SEARCH_SCOPE
               }
             });
       - name: Validate prompt placeholders
