@@ -1,0 +1,17 @@
+{
+  "original_intent": "catalog-content",
+  "files": [
+    {
+      "path": "content/authors/napoleon.md"
+    },
+    {
+      "path": "content/authors/pedro.md"
+    },
+    {
+      "path": "content/authors/llamantha.md"
+    },
+    {
+      "path": "content/authors/lucy.md"
+    }
+  ]
+}
