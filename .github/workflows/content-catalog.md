@@ -37,7 +37,7 @@ on:
 
 engine:
   id: copilot
-  model: gpt-5.1-codex-mini
+  model: gpt-5-mini
 
 permissions: read-all
 
@@ -143,40 +143,59 @@ gh label create "${{ inputs.label_name }}" --color "D93F0B" --description "${{ i
 
 ### Step 2 — Discover, filter, and sort content files
 
-The user's search scope describes **exactly** which files belong in the snapshot:
+The user's search scope is:
 
 ```
 ${{ inputs.search_scope }}
 ```
 
-The search scope is a free-text prompt. Interpret it to determine **all** of the following:
+Follow this procedure exactly:
 
-1. **Directory and file-type scope** — which directories to scan and which extensions to include (e.g. "all .mdx files under content/posts").
-2. **Content-level filter** — any conditions about the file's contents, front-matter, or metadata that a file must satisfy to be included (e.g. "files that contain lorem ipsum", "non-archived files", "files with category X"). **You must read each candidate file and evaluate whether it meets these conditions.** Files that do not satisfy every condition in the search scope must be **excluded** from the snapshot.
+#### 2a. List candidate files
 
-**Only files that pass both the directory/type scope AND the content-level filter belong in the snapshot.** Do not include files that merely live in the right directory but fail the content-level criteria. If the search scope says "files that contain lorem ipsum", a file without lorem ipsum must not appear in the table. If the search scope says "non-archived", a file marked as archived must not appear. Be strict — when in doubt, read the file and check.
+Parse the search scope to identify the **directory/file-type scope** (which directories and extensions to scan). List every file that matches.
 
-**Verification**: Before adding any file to the snapshot, confirm: Does this file match what the user is looking for:
+#### 2b. Read and filter each candidate — MANDATORY
 
-Here is the user's intent again for reference:
+The search scope may also contain **content-level criteria** (conditions about a file's contents, front-matter values, or metadata — e.g. "files that contain lorem ipsum", "non-archived files", "files tagged with X").
+
+For **every** candidate file from 2a you **must**:
+
+1. Read the file's full content.
+2. Evaluate it against **every** content-level criterion in the search scope.
+3. If the file **fails any criterion**, **exclude it** — do NOT add it to the snapshot.
+
+**Do NOT skip this step.** A file that lives in the right directory but fails a content-level criterion must be excluded. If the search scope says "files that contain lorem ipsum", every file without the text "lorem ipsum" must be dropped. If it says "non-archived", every file with an archived flag must be dropped. When in doubt, exclude.
+
+**Verification**: Before adding any file to `passed_files`, also confirm it is relevant to the user's intent:
+
 ```
 ${{ inputs.intent }}
 ```
 
-For **each** file that passes all filters:
+If a file passes the search scope criteria but is clearly unrelated to the intent, exclude it.
 
-1. Read the file content (if you have not already done so during filtering).
-2. Extract a **CategoryList** — look for any categorisation mechanism the file uses (front-matter tags, categories, labels, folder structure, etc.). If the file has a recognisable list of categories or tags, extract them as a comma-separated string. If none are found, use `uncategorized`.
-3. Extract a **Created** date — look for any date field in front-matter that represents when the content was originally created or published (e.g. `date`, `created`, `publishedAt`). Use the format `YYYY-MM-DD`. If no such field exists, use `-`.
-4. Extract a **LastUpdated** date — look for any date field in front-matter that represents the last modification (e.g. `lastUpdated`, `updatedAt`, `modified`, `lastChecked`). If no such field exists, use `-`.
+Build a `passed_files` list containing only files that satisfy **all** criteria. Files that fail go into an internal `excluded_files` list (you do not need to write this list anywhere, but you must track it to ensure they are not in the snapshot).
 
-After collecting all files, **sort them** according to the user's processing priority:
+#### 2c. Extract metadata from passed files
+
+For each file in `passed_files`:
+
+1. **CategoryList** — look for any categorisation mechanism (front-matter tags, categories, labels, folder structure). If found, extract as a comma-separated string. Otherwise use `uncategorized`.
+2. **Created** — a date field representing original creation/publication (e.g. `date`, `created`, `publishedAt`). Format `YYYY-MM-DD`. If absent, use `-`.
+3. **LastUpdated** — a date field representing last modification (e.g. `lastUpdated`, `updatedAt`, `modified`, `lastChecked`). If absent, use `-`.
+
+#### 2d. Sort
+
+Sort `passed_files` according to the user's processing priority:
 
 ```
 ${{ inputs.processing_priority }}
 ```
 
 Interpret this as a sort specification. For example, "first sort by created then lastUpdated" means sort primarily by Created date, then break ties with LastUpdated date. Apply ascending order unless the user explicitly says descending. Rows with `-` dates sort last.
+
+**The snapshot table must contain ONLY the files in `passed_files` after this step. No other files.**
 
 ### Step 3 — Write the snapshot tracking file
 
