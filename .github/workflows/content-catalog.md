@@ -156,6 +156,13 @@ The search scope is a free-text prompt. Interpret it to determine **all** of the
 
 **Only files that pass both the directory/type scope AND the content-level filter belong in the snapshot.** Do not include files that merely live in the right directory but fail the content-level criteria. If the search scope says "files that contain lorem ipsum", a file without lorem ipsum must not appear in the table. If the search scope says "non-archived", a file marked as archived must not appear. Be strict — when in doubt, read the file and check.
 
+**Verification**: Before adding any file to the snapshot, confirm: Does this file match what the user is looking for:
+
+Here is the user's intent again for reference:
+```
+${{ inputs.intent }}
+```
+
 For **each** file that passes all filters:
 
 1. Read the file content (if you have not already done so during filtering).
