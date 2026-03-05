@@ -1,25 +1,38 @@
 ---
 description: >
-  Phase 1 of the content catalog pipeline. Scans a content directory for all
-  non-archived, non-draft files, extracts their category tags and git history,
-  and commits a tracking file to a new branch, then opens a pull request.
-  The tracking file lists every file with its full metadata as a task-list so
-  Agent 2 can check off rows as it processes them. Also creates a custom GitHub
-  label derived from the user's intent for Agent 2 to inject into raised issues.
-  Safe to re-run — if an open catalog-tracking PR already exists with unchecked
-  rows it stops immediately without creating duplicates.
+  Agent 1 (Detective) of the ContentHawk pipeline.
+  Scans content files based on user-provided search scope, extracts category
+  and date metadata from each file, sorts them by the user's processing
+  priority, and commits a markdown snapshot tracking file to a new branch,
+  then opens a pull request.
+  The snapshot is a markdown table listing every file with its metadata so
+  Agent 2 can iterate over rows to find issues and Agent 3 can raise PRs
+  grouped by the intent label.
+  Also creates a custom GitHub label derived from the user's intent for
+  Agent 2 to inject into issues and Agent 3 to bundle PRs.
+  Stops immediately if an open catalog-tracking PR already exists for this
+  intent to avoid duplicates.
 
 on:
   workflow_dispatch:
     inputs:
-      intent:
-        description: "What Agent 2 should look for (e.g. 'archive all legacy TFS version-control posts')"
-        required: true
       search_scope:
-        description: "The category of markdown files the agent should focus on. For example, if your content repo has both 'posts' and 'docs' directories, you might set this to 'posts' to focus only on blog articles. You may also use things like category or archive status as filtering criteria."
+        description: "Which content files to scan and how to filter them (e.g. '.NET rules under content/rules that are not archived', 'all public pages in content folder')."
+        required: true
+      processing_priority:
+        description: "How to sort the file list for processing order (e.g. 'first sort by created date ascending, then by lastUpdated descending')."
+        required: true
+      intent:
+        description: "What Agent 2 should look for and act on (e.g. 'archive all legacy rules and populate archive reason including modern rule reference')."
+        required: true
+      issue_preferences:
+        description: "Preferences for how Agent 2 creates issues (e.g. 'use template .github/ISSUE_TEMPLATE/content-review.md, max 20 issues per run')."
+        required: true
+      pr_preferences:
+        description: "Preferences for how Agent 3 creates PRs (e.g. 'use template .github/PULL_REQUEST_TEMPLATE/content-fix.md, bundle up to 5 related issues per PR')."
         required: true
       label_name:
-        description: "GitHub label slug to attach to flagged issues (e.g. 'archive-legacy-rules')"
+        description: "GitHub label slug to tie the pipeline together (e.g. 'archive-legacy-rules'). Agent 2 applies it to issues, Agent 3 queries by it."
         required: true
 
 permissions: read-all
@@ -35,118 +48,156 @@ tools:
     toolsets: [default]
 ---
 
-### Step 1 - Cataloging
+## Important context
 
-Create a json file in the folder .github/content-hawk/todo/ with the name <intent_name>.json
+This workflow is **Agent 1 (Detective)** in a three-agent pipeline called **ContentHawk**:
 
-Then add a json file to it with the following:
+- **Agent 1 (this workflow)**: Catalogs content files and creates a snapshot tracking file. Creates a label for the intent.
+- **Agent 2**: Reads the snapshot, checks each file against the intent, and opens GitHub issues for files that match. Uses the label and issue preferences captured here.
+- **Agent 3**: Reads issues with the intent label and raises PRs to resolve them. Uses the PR preferences captured here.
 
-```
-{
-  "original_intent": `${{ inputs.intent }}`,
-}
+The snapshot file you create must contain **all the information** Agent 2 and Agent 3 need — every user prompt is persisted into the snapshot so downstream agents are self-contained.
 
-```
+## Inputs provided by the user
 
-### Step 2
+All six prompts are captured and must be written into the snapshot file:
 
+| Prompt              | Value                                | Used by        |
+|---------------------|--------------------------------------|----------------|
+| Search Scope        | `${{ inputs.search_scope }}`         | Agent 1        |
+| Processing Priority | `${{ inputs.processing_priority }}`  | Agent 1        |
+| Intent              | `${{ inputs.intent }}`               | Agents 1, 2, 3 |
+| Issue Preferences   | `${{ inputs.issue_preferences }}`    | Agent 2        |
+| PR Preferences      | `${{ inputs.pr_preferences }}`       | Agent 3        |
+| Label Name          | `${{ inputs.label_name }}`           | Agents 1, 2, 3 |
 
-Use the following criteria to aggregate a list of markdown files in this repository:
+---
 
+### Step 0 — Check for an existing catalog PR
 
-```
-  ${{ inputs.search_scope }}
-```
-Once you've aggregated all of these files, add a new property to the json file created in step 1 with the following format:
-
-{
-  "files": [
-    {
-      "path": "<file_path>",
-    },
-  ]
-}
-
-
-### Step 3
-
-Create a pull request with the title `[Content Catalog] ${{ inputs.intent }}` using a branch called `content-hawk/todo/${{ inputs.intent }}`. Include the file created in step 1 in the pull request.
-<!-- End testing changes to steps -->
-
-<!-- ### Step 1 — Create the intent label
-
-Create a GitHub label named exactly as the `label_name` input value, using `#<label_color>` as the color and the `intent` input as the description. Run:
+Before doing any work, check whether an open pull request already exists for this intent. Run:
 
 ```bash
-gh label create "$LABEL_NAME" --color "#$LABEL_COLOR" --description "$INTENT" --force
+gh pr list --label "catalog-tracking" --state open --search "[Content Catalog] ${{ inputs.intent }}" --json number,title
 ```
 
-The `--force` flag updates an existing label rather than failing, making this step idempotent.
+If the command returns **any** results, **stop immediately**. Output a message like:
 
-### Step 2 — Discover all content files
+> A catalog PR already exists for this intent (PR #\<number\>). Skipping to avoid duplicates.
 
-List every `.md` and `.mdx` file under the `collection_path` directory (recursive). For each file:
+Do **not** create a label, snapshot file, or pull request. End the workflow here.
 
-1. Read its YAML front-matter.
-2. **Skip** the file if front-matter contains `archived: true` or `draft: true`.
-3. Extract the **CategoryList**: read the `tags` array. Each tag entry is a file path like `content/tags/tinacms.mdx` — extract just the stem (the filename without extension). If no tags exist, use `uncategorized`. Join multiple stems with commas.
-4. Retrieve git history dates via bash:
-   - **Created** (first commit date):
-     ```bash
-     git log --follow --format='%as' -- <path> | tail -1
-     ```
-   - **LastUpdated** (most recent commit date):
-     ```bash
-     git log --follow --format='%as' -1 -- <path>
-     ```
-   If git returns no output (untracked file), use `-` for both dates. -->
+### Step 1 — Create the intent label
 
-<!-- ### Step 3 — Write the tracking file
+Create a GitHub label named exactly `${{ inputs.label_name }}` with a distinguishing color and the intent as its description. Use the `--force` flag so re-runs update rather than fail:
 
-Create the file `.github/content-catalog/tracking.md` using the edit tool. Its content must follow this exact structure:
+```bash
+gh label create "${{ inputs.label_name }}" --color "D93F0B" --description "${{ inputs.intent }}" --force
+```
+
+### Step 2 — Discover and sort content files
+
+Find all content files in this repository that match the search scope criteria provided by the user:
 
 ```
-## Configuration
+${{ inputs.search_scope }}
+```
 
-| Field      | Value                     |
-|------------|---------------------------|
-| Intent     | <intent input>            |
-| Label      | `<label_name input>`      |
-| Collection | <collection_path input>   |
-| Created    | <today's ISO timestamp>   |
+The search scope is a free-text prompt. Interpret it to determine:
+- **Which directories and file types** to scan (e.g. "all .md files under docs/", "every .mdx in content/posts").
+- **Which files to include or exclude** (e.g. "non-archived", "only files with category X", "skip drafts"). Apply whatever filtering logic the search scope describes.
+
+For **each** file that passes the filter:
+
+1. Read the file content.
+2. Extract a **CategoryList** — look for any categorisation mechanism the file uses (front-matter tags, categories, labels, folder structure, etc.). If the file has a recognisable list of categories or tags, extract them as a comma-separated string. If none are found, use `uncategorized`.
+3. Extract a **Created** date — look for any date field in front-matter that represents when the content was originally created or published (e.g. `date`, `created`, `publishedAt`). Use the format `YYYY-MM-DD`. If no such field exists, use `-`.
+4. Extract a **LastUpdated** date — look for any date field in front-matter that represents the last modification (e.g. `lastUpdated`, `updatedAt`, `modified`, `lastChecked`). If no such field exists, use `-`.
+
+After collecting all files, **sort them** according to the user's processing priority:
+
+```
+${{ inputs.processing_priority }}
+```
+
+Interpret this as a sort specification. For example, "first sort by created then lastUpdated" means sort primarily by Created date, then break ties with LastUpdated date. Apply ascending order unless the user explicitly says descending. Rows with `-` dates sort last.
+
+### Step 3 — Write the snapshot tracking file
+
+Determine today's date in `YYYY-MM-DD` format. Create the file:
+
+```
+.github/ContentHawk/TODO/<todays-date>_Snapshot_${{ inputs.label_name }}.md
+```
+
+For example: `.github/ContentHawk/TODO/2026-03-05_Snapshot_archive-legacy-rules.md`
+
+The file must follow this **exact** structure:
+
+```markdown
+# Content Catalog Snapshot
+
+## Agent Configuration
+
+| Field               | Value                                           |
+|---------------------|-------------------------------------------------|
+| Intent              | ${{ inputs.intent }}                            |
+| Search Scope        | ${{ inputs.search_scope }}                      |
+| Processing Priority | ${{ inputs.processing_priority }}               |
+| Issue Preferences   | ${{ inputs.issue_preferences }}                 |
+| PR Preferences      | ${{ inputs.pr_preferences }}                    |
+| Label               | `${{ inputs.label_name }}`                      |
+| Created             | <today's date in YYYY-MM-DD>                    |
 
 ## Files to Review
 
-<one row per non-skipped file, sorted alphabetically by path>
-- [ ] `<file-path>` | categories: <CategoryList> | created: <Created> | last-updated: <LastUpdated> | checked: - | result: pending
-``` -->
-
-<!-- ### Step 4 — Open the pull request
-
-Create a pull request from `content-catalog/active` into `main`. The title prefix `[Content Catalog] ` is added automatically — use only the `intent` input as the title body.
-
-Use this exact PR body:
-
+| Path        | CategoryList   | Created    | LastUpdated   | CheckedDate | CheckResult |
+|-------------|----------------|------------|---------------|-------------|-------------|
+| <file-path> | <CategoryList> | <Created>  | <LastUpdated> | -           | pending     |
 ```
+
+Rules for the table:
+
+- One row per non-skipped file from Step 2.
+- Rows are in the sort order determined by the processing priority (NOT alphabetical unless that is what the user requested).
+- `CheckedDate` is always `-` (Agent 2 fills this in later).
+- `CheckResult` is always `pending` (Agent 2 updates this later).
+
+### Step 4 — Open the pull request
+
+Create a pull request with the title `[Content Catalog] ${{ inputs.intent }}` from a branch named `ContentHawk/TODO/${{ inputs.label_name }}` into `main`.
+
+Use this PR body:
+
+```markdown
 ## Intent
 
-<intent input>
+${{ inputs.intent }}
+
+## Search Scope
+
+${{ inputs.search_scope }}
+
+## Processing Priority
+
+${{ inputs.processing_priority }}
 
 ## Label for flagged issues
 
-`<label_name input>`
+`${{ inputs.label_name }}`
 
-## Tracking file
+## Issue Preferences (for Agent 2)
 
-The full file list with metadata is in `.github/content-catalog/tracking.md` on this branch.
-Agent 2 will check off each row as it processes files and update the `checked` date and `result` fields.
+${{ inputs.issue_preferences }}
 
-## Configuration
+## PR Preferences (for Agent 3)
 
-| Field      | Value                     |
-|------------|---------------------------|
-| Intent     | <intent input>            |
-| Label      | `<label_name input>`      |
-| Collection | <collection_path input>   |
-| Created    | <today's ISO timestamp>   |
-``` -->
+${{ inputs.pr_preferences }}
+
+## Snapshot file
+
+The full file list with metadata is in `.github/ContentHawk/TODO/<todays-date>_Snapshot_${{ inputs.label_name }}.md` on this branch.
+
+- **Agent 2** will iterate over the table rows in order, check each file against the intent, update `CheckedDate` and `CheckResult`, and open issues with the `${{ inputs.label_name }}` label.
+- **Agent 3** will read issues labelled `${{ inputs.label_name }}` and raise PRs to resolve them.
+```
