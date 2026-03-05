@@ -21,10 +21,6 @@ on:
       label_name:
         description: "GitHub label slug to attach to flagged issues (e.g. 'archive-legacy-rules')"
         required: true
-      # collection_path:
-      #   description: "Repo path to scan for .md/.mdx content files"
-      #   required: false
-      #   default: "content/posts"
 
 permissions: read-all
 
@@ -74,7 +70,7 @@ Once you've aggregated all of these files, add a new property to the json file c
 
 ### Step 3
 
-Create a pull request with the title [Content Catalog] <intent> using a branch called content-hawk/todo/<intent_name>. Include the file created in step 1 in the pull request.
+Create a pull request with the title `[Content Catalog] ${{ inputs.intent }}` using a branch called `content-hawk/todo/${{ inputs.intent }}`. Include the file created in step 1 in the pull request.
 <!-- End testing changes to steps -->
 
 <!-- ### Step 1 — Create the intent label
