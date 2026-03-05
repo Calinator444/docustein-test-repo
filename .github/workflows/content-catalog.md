@@ -71,8 +71,8 @@ safe-outputs:
 tools:
   github:
     toolsets: [default]
-  tavily:
-    tools: [search, search_news]
+  # tavily:
+  #   tools: [search, search_news]
 
 post-steps:
   - name: Workflow Summary
