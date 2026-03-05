@@ -44,7 +44,6 @@ permissions: read-all
 safe-outputs:
   create-pull-request:
     title-prefix: "[Content Catalog] "
-    labels: ["catalog-tracking"]
     max: 1
   add-labels:
     target: "*"
@@ -127,7 +126,7 @@ All six prompts are captured and must be written into the snapshot file:
 Before doing any work, check whether an open pull request already exists for this intent. Run:
 
 ```bash
-gh pr list --label "catalog-tracking" --state open --search "[Content Catalog] ${{ inputs.intent }}" --json number,title
+gh pr list --label "${{ inputs.label_name }}" --state open --search "[Content Catalog]" --json number,title
 ```
 
 If the command returns **any** results, **stop immediately**. Output a message like:
@@ -243,7 +242,7 @@ Rules for the table:
 
 ### Step 4 — Open the pull request
 
-Create a pull request with the title `[Content Catalog] ${{ inputs.intent }}` from a branch named `ContentHawk/TODO/${{ inputs.label_name }}` into `main`.
+Create a pull request with the title `[Content Catalog] {description}` where {description} is a very brief description of the intent from a branch named `ContentHawk/TODO/${{ inputs.label_name }}` into `main`.
 
 Use this PR body:
 
