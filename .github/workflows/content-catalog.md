@@ -35,6 +35,10 @@ on:
         description: "GitHub label slug to tie the pipeline together (e.g. 'archive-legacy-rules'). Agent 2 applies it to issues, Agent 3 queries by it."
         required: true
 
+engine:
+  id: copilot
+  model: gpt-5.1-codex-mini
+
 permissions: read-all
 
 safe-outputs:
@@ -137,21 +141,24 @@ Create a GitHub label named exactly `${{ inputs.label_name }}` with a distinguis
 gh label create "${{ inputs.label_name }}" --color "D93F0B" --description "${{ inputs.intent }}" --force
 ```
 
-### Step 2 — Discover and sort content files
+### Step 2 — Discover, filter, and sort content files
 
-Find all content files in this repository that match the search scope criteria provided by the user:
+The user's search scope describes **exactly** which files belong in the snapshot:
 
 ```
 ${{ inputs.search_scope }}
 ```
 
-The search scope is a free-text prompt. Interpret it to determine:
-- **Which directories and file types** to scan (e.g. "all .md files under docs/", "every .mdx in content/posts").
-- **Which files to include or exclude** (e.g. "non-archived", "only files with category X", "skip drafts"). Apply whatever filtering logic the search scope describes.
+The search scope is a free-text prompt. Interpret it to determine **all** of the following:
 
-For **each** file that passes the filter:
+1. **Directory and file-type scope** — which directories to scan and which extensions to include (e.g. "all .mdx files under content/posts").
+2. **Content-level filter** — any conditions about the file's contents, front-matter, or metadata that a file must satisfy to be included (e.g. "files that contain lorem ipsum", "non-archived files", "files with category X"). **You must read each candidate file and evaluate whether it meets these conditions.** Files that do not satisfy every condition in the search scope must be **excluded** from the snapshot.
 
-1. Read the file content.
+**Only files that pass both the directory/type scope AND the content-level filter belong in the snapshot.** Do not include files that merely live in the right directory but fail the content-level criteria. If the search scope says "files that contain lorem ipsum", a file without lorem ipsum must not appear in the table. If the search scope says "non-archived", a file marked as archived must not appear. Be strict — when in doubt, read the file and check.
+
+For **each** file that passes all filters:
+
+1. Read the file content (if you have not already done so during filtering).
 2. Extract a **CategoryList** — look for any categorisation mechanism the file uses (front-matter tags, categories, labels, folder structure, etc.). If the file has a recognisable list of categories or tags, extract them as a comma-separated string. If none are found, use `uncategorized`.
 3. Extract a **Created** date — look for any date field in front-matter that represents when the content was originally created or published (e.g. `date`, `created`, `publishedAt`). Use the format `YYYY-MM-DD`. If no such field exists, use `-`.
 4. Extract a **LastUpdated** date — look for any date field in front-matter that represents the last modification (e.g. `lastUpdated`, `updatedAt`, `modified`, `lastChecked`). If no such field exists, use `-`.
