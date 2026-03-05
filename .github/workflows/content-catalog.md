@@ -54,6 +54,12 @@ network:
     - defaults
     - "*.tavily.com"
 
+env:
+  GIT_AUTHOR_NAME: "content-hawk"
+  GIT_AUTHOR_EMAIL: "content-hawk@users.noreply.github.com"
+  GIT_COMMITTER_NAME: "content-hawk"
+  GIT_COMMITTER_EMAIL: "content-hawk@users.noreply.github.com"
+
 safe-outputs:
   create-pull-request:
     title-prefix: "[Content Catalog] "
