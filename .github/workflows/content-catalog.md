@@ -117,11 +117,7 @@ post-steps:
       retention-days: 7
 ---
 
-
-
-Search for TFS using tavily and then report back as to whether it's still relevant
-
-<!-- ## Important context
+## Important context
 
 This workflow is **Agent 1 (Detective)** in a three-agent pipeline called **ContentHawk**:
 
@@ -311,4 +307,4 @@ The full file list with metadata is in `.github/ContentHawk/TODO/<todays-date>_S
 - **Agent 3** will read issues labelled `${{ inputs.label_name }}` and raise PRs to resolve them.
 ```
 
-After the PR is created, **add the label** `${{ inputs.label_name }}` to the PR. This is the user's custom intent label (created in Step 1) and is separate from the `catalog-tracking` label that is applied automatically. Use the add-labels tool to apply it to the PR. -->
+After the PR is created, **add the label** `${{ inputs.label_name }}` to the PR. This is the user's custom intent label (created in Step 1) and is separate from the `catalog-tracking` label that is applied automatically. Use the add-labels tool to apply it to the PR.
