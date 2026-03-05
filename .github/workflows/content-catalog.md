@@ -46,6 +46,48 @@ safe-outputs:
 tools:
   github:
     toolsets: [default]
+
+post-steps:
+  - name: Workflow Summary
+    if: always()
+    env:
+      INPUT_SEARCH_SCOPE: ${{ inputs.search_scope }}
+      INPUT_PROCESSING_PRIORITY: ${{ inputs.processing_priority }}
+      INPUT_INTENT: ${{ inputs.intent }}
+      INPUT_LABEL_NAME: ${{ inputs.label_name }}
+    run: |
+      echo "## ContentHawk — Agent 1 (Detective)" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+
+      # Show the inputs that were provided
+      echo "### Inputs" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Field               | Value |" >> "$GITHUB_STEP_SUMMARY"
+      echo "|---------------------|-------|" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Search Scope        | $INPUT_SEARCH_SCOPE |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Processing Priority | $INPUT_PROCESSING_PRIORITY |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Intent              | $INPUT_INTENT |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Label               | \`$INPUT_LABEL_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+
+      # List any files the agent created or modified
+      echo "### Agent Output" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      if [ -d /tmp/gh-aw ]; then
+        echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+        find /tmp/gh-aw -type f | head -30 >> "$GITHUB_STEP_SUMMARY"
+        echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+      else
+        echo "_No agent output directory found._" >> "$GITHUB_STEP_SUMMARY"
+      fi
+
+  - name: Upload Agent Artifacts
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: contenthawk-agent1-results
+      path: /tmp/gh-aw/
+      retention-days: 7
 ---
 
 ## Important context

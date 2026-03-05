@@ -23,7 +23,7 @@
 #
 # Agent 1 (Detective) of the ContentHawk pipeline. Scans content files based on user-provided search scope, extracts category and date metadata from each file, sorts them by the user's processing priority, and commits a markdown snapshot tracking file to a new branch, then opens a pull request. The snapshot is a markdown table listing every file with its metadata so Agent 2 can iterate over rows to find issues and Agent 3 can raise PRs grouped by the intent label. Also creates a custom GitHub label derived from the user's intent for Agent 2 to inject into issues and Agent 3 to bundle PRs. Stops immediately if an open catalog-tracking PR already exists for this intent to avoid duplicates.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"03fdd8c676f6cc4868c15dd16c12a08125b6402cf61413f14734365a26c8c538","compiler_version":"v0.53.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"1535d728e36a3e1462e82f474017562e7293af11396db99ecd9841a466f502a2","compiler_version":"v0.53.2"}
 
 name: "Content Catalog Snapshot"
 "on":
@@ -849,6 +849,22 @@ jobs:
           else
             echo 'AWF binary not installed, skipping firewall log summary'
           fi
+      - env:
+          INPUT_INTENT: ${{ inputs.intent }}
+          INPUT_LABEL_NAME: ${{ inputs.label_name }}
+          INPUT_PROCESSING_PRIORITY: ${{ inputs.processing_priority }}
+          INPUT_SEARCH_SCOPE: ${{ inputs.search_scope }}
+        if: always()
+        name: Workflow Summary
+        run: "echo \"## ContentHawk — Agent 1 (Detective)\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"\" >> \"$GITHUB_STEP_SUMMARY\"\n\n# Show the inputs that were provided\necho \"### Inputs\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"| Field               | Value |\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"|---------------------|-------|\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"| Search Scope        | $INPUT_SEARCH_SCOPE |\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"| Processing Priority | $INPUT_PROCESSING_PRIORITY |\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"| Intent              | $INPUT_INTENT |\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"| Label               | \\`$INPUT_LABEL_NAME\\` |\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"\" >> \"$GITHUB_STEP_SUMMARY\"\n\n# List any files the agent created or modified\necho \"### Agent Output\" >> \"$GITHUB_STEP_SUMMARY\"\necho \"\" >> \"$GITHUB_STEP_SUMMARY\"\nif [ -d /tmp/gh-aw ]; then\n  echo \"\\`\\`\\`\" >> \"$GITHUB_STEP_SUMMARY\"\n  find /tmp/gh-aw -type f | head -30 >> \"$GITHUB_STEP_SUMMARY\"\n  echo \"\\`\\`\\`\" >> \"$GITHUB_STEP_SUMMARY\"\nelse\n  echo \"_No agent output directory found._\" >> \"$GITHUB_STEP_SUMMARY\"\nfi\n"
+      - if: always()
+        name: Upload Agent Artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: contenthawk-agent1-results
+          path: /tmp/gh-aw/
+          retention-days: 7
+
       - name: Upload agent artifacts
         if: always()
         continue-on-error: true
