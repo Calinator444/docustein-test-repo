@@ -23,7 +23,7 @@
 #
 # Agent 1 (Detective) of the ContentHawk pipeline. Scans content files based on user-provided search scope, extracts category and date metadata from each file, sorts them by the user's processing priority, and commits a markdown snapshot tracking file to a new branch, then opens a pull request. The snapshot is a markdown table listing every file with its metadata so Agent 2 can iterate over rows to find issues and Agent 3 can raise PRs grouped by the intent label. Also creates a custom GitHub label derived from the user's intent for Agent 2 to inject into issues and Agent 3 to bundle PRs. Stops immediately if an open catalog-tracking PR already exists for this intent to avoid duplicates.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"7afb53a4b992b5df746ef37f8b1776d529e1eb4b56a6dae88a552ca653116ec3","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"bbc9cfa079a8a269ebf3133015f2e4dd7fd65e199d18b0f1b6e67fb422711c55","compiler_version":"v0.50.5"}
 
 name: "Content Catalog Snapshot"
 "on":
@@ -54,6 +54,12 @@ concurrency:
   group: "gh-aw-${{ github.workflow }}-${{ github.event.issue.number }}"
 
 run-name: "Content Catalog Snapshot"
+
+env:
+  GIT_AUTHOR_EMAIL: content-hawk@users.noreply.github.com
+  GIT_AUTHOR_NAME: content-hawk
+  GIT_COMMITTER_EMAIL: content-hawk@users.noreply.github.com
+  GIT_COMMITTER_NAME: content-hawk
 
 jobs:
   activation:
@@ -719,7 +725,7 @@ jobs:
                 "entrypointArgs": [
                   "npx",
                   "-y",
-                  "@tavily/mcp-server"
+                  "tavily-mcp"
                 ],
                 "tools": [
                   "search",
