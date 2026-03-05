@@ -39,7 +39,20 @@ engine:
   id: copilot
   model: gpt-5-mini
 
+mcp-servers:
+  tavily:
+    command: npx
+    args: ["-y", "@tavily/mcp-server"]
+    env:
+      TAVILY_API_KEY: "${{ secrets.TAVILY_API_KEY }}"
+    allowed: ["search", "search_news"]
+
 permissions: read-all
+
+network:
+  allowed:
+    - defaults
+    - "*.tavily.com"
 
 safe-outputs:
   create-pull-request:
@@ -52,6 +65,8 @@ safe-outputs:
 tools:
   github:
     toolsets: [default]
+  tavily:
+    tools: [search, search_news]
 
 post-steps:
   - name: Workflow Summary
@@ -176,6 +191,13 @@ ${{ inputs.intent }}
 ```
 
 If a file passes the search scope criteria but is clearly unrelated to the intent, exclude it.
+
+**Using Web Search for Relevance Validation**: During verification, if you need to confirm whether content is relevant to the intent (e.g., checking if a technology mentioned in the file is deprecated, outdated, or has been replaced), use the Tavily search tool. For example:
+- If the intent involves archiving legacy documentation, search for the technology/framework to check deprecation status
+- If the intent involves updating outdated content, search for the topic to verify current recommendations
+- Formulate queries like "[technology] deprecated", "[technology] end of life", or "[topic] current best practices"
+
+Search results should inform your decision about whether the file is relevant to the user's intent. If search results indicate the content is obsolete or unrelated to current recommendations, exclude the file.
 
 Build a `passed_files` list containing only files that satisfy **all** criteria. Files that fail go into an internal `excluded_files` list (you do not need to write this list anywhere, but you must track it to ensure they are not in the snapshot).
 
