@@ -52,9 +52,9 @@ env:
   GIT_COMMITTER_NAME: "content-hawk"
   GIT_COMMITTER_EMAIL: "content-hawk@users.noreply.github.com"
 
-concurrency:
-  group: "contenthawk-judge-${{ inputs.label_name }}"
-  cancel-in-progress: false
+# concurrency:
+#   group: "contenthawk-judge-${{ inputs.label_name }}"
+#   cancel-in-progress: false
 
 safe-outputs:
   create-issue:
