@@ -46,6 +46,9 @@ safe-outputs:
     title-prefix: "[Content Catalog] "
     labels: ["catalog-tracking"]
     max: 1
+  add-labels:
+    target: "*"
+    max: 1
 
 tools:
   github:
@@ -276,3 +279,5 @@ The full file list with metadata is in `.github/ContentHawk/TODO/<todays-date>_S
 - **Agent 2** will iterate over the table rows in order, check each file against the intent, update `CheckedDate` and `CheckResult`, and open issues with the `${{ inputs.label_name }}` label.
 - **Agent 3** will read issues labelled `${{ inputs.label_name }}` and raise PRs to resolve them.
 ```
+
+After the PR is created, **add the label** `${{ inputs.label_name }}` to the PR. This is the user's custom intent label (created in Step 1) and is separate from the `catalog-tracking` label that is applied automatically. Use the add-labels tool to apply it to the PR.
