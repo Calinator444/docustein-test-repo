@@ -30,8 +30,6 @@ on:
 engine:
   id: copilot
   model: gpt-5-mini
-  env:
-    GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
 mcp-servers:
   tavily:
