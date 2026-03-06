@@ -58,14 +58,13 @@ concurrency:
 
 safe-outputs:
   create-issue:
+    label: "${{ inputs.label_name }}"
     title-prefix: "🦅ContentHawk - Content Audit: "
     max: 30
   create-pull-request:
     title-prefix: "[Content Judge] "
+    label: "${{ inputs.label_name }}"
     max: 1
-  add-labels:
-    target: "*"
-    max: 31
 
 tools:
   github:
@@ -233,10 +232,6 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 ### File
 
 `<Path>`
-
-### Intent
-
-<Intent from Agent Configuration>
 
 ### Finding
 
