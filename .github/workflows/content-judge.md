@@ -244,18 +244,10 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 ---
 ```
 
-After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`.
+Add an entry to a running `created_issues` list as `{ summary: <issue_summary>, path: <Path> }`. Issue numbers will be resolved in bulk in Step 3f after the loop completes.
 
-```
-repo:${{ github.repository }} is:issue is:open label:${{ inputs.label_name }} "<issue_summary>" in:title
-```
-
-Where `<issue_summary>` is the exact summary string passed to `create-issue` in this step. Take the `number` field from the first matching result.
-
-Add this issue to a running `created_issues` list as `{ number: <number>, summary: <issue_summary>, path: <Path> }` for use in the PR body in Step 5.
-
-Update this row:
-- `CheckResult = Issue #<number>`
+Record for this row in memory:
+- `CheckResult = pending-resolution` (a temporary marker; replaced with the real issue number in Step 3f before the snapshot is written)
 - `CheckedDate = <today's date in YYYY-MM-DD>`
 
 #### 3e. Skip the file (if `needs_action = false`)
@@ -263,6 +255,22 @@ Update this row:
 Update this row:
 - `CheckResult = Skipped`
 - `CheckedDate = <today's date in YYYY-MM-DD>`
+
+### Step 3f — Resolve issue numbers in bulk
+
+After the loop over `pending_rows` is complete, resolve the issue numbers for every entry in `created_issues` using the GitHub MCP `search_issues` tool. Use the hidden `gh-aw-workflow-id` marker that the gh-aw runtime automatically embeds in the body of every issue created by this workflow. The workflow name in the marker is the filename without the `.md` extension — for this workflow that is `content-judge`:
+
+```
+repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" in:body
+```
+
+For each issue returned:
+1. Parse the `### File` section of the issue body to extract the file path.
+2. Find the matching entry in `created_issues` where `path` equals that extracted path.
+3. Set `number = <issue number from the search result>` on that `created_issues` entry.
+4. Update the in-memory `CheckResult` for the corresponding row from `pending-resolution` to `Issue #<number>`.
+
+If a `created_issues` entry cannot be matched to any returned issue, record `CheckResult = Issue (number unknown)` for that row and log a warning.
 
 ### Step 4 — Write the updated snapshot
 
@@ -323,9 +331,9 @@ Then open a pull request using the `create-pull-request` safe-output tool:
 
 ### Issues opened
 
-<Iterate over the `created_issues` list built during Step 3. For each entry, write one bullet using the `number` and `summary` values retrieved via `search_issues` in Step 3d:>
+<Iterate over the `created_issues` list resolved in Step 3f. For each entry, write one bullet using the `number` and `summary` values:
 `- #<number>: <issue_summary> (<path>)`
-<If `created_issues` is empty, write: _No issues were opened this run._>
+If `created_issues` is empty, write: _No issues were opened this run._>
 
 ### Next steps
 
