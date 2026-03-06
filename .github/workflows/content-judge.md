@@ -161,7 +161,7 @@ Extract the following fields from the `## Agent Configuration` table:
 
 #### 1b. Parse the Files to Review table
 
-Collect every row from the `## Files to Review` table where **`CheckResult` is exactly `pending`**. Preserve the exact row order from the table — this is the processing order. Call this list `pending_rows`.
+Collect every row from the `## Files to Review` table where `CheckResult` is exactly `pending`. Preserve the exact row order from the table — this is the processing order. Call this list `pending_rows`.
 
 If `pending_rows` is empty (all rows already have a non-pending CheckResult), **stop immediately** with a message:
 
@@ -199,7 +199,7 @@ If `open_count >= max_open_issues`, **stop the loop**. Leave this row and all re
 
 #### 3b. Read the content file
 
-Read the full content of the file at the `Path` value from the row. If the file does not exist inis  the repository, record:
+Read the full content of the file at the `Path` value from the row. If the file does not exist in the repository, record:
 - `CheckResult = Skipped`
 - `CheckedDate = <today's date in YYYY-MM-DD>`
 
