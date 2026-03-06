@@ -183,6 +183,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
+          GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_INPUTS_LABEL_NAME: ${{ inputs.label_name }}
           GH_AW_INPUTS_MAX_OPEN_ISSUES: ${{ inputs.max_open_issues }}
           GH_AW_INPUTS_SNAPSHOT_PATH: ${{ inputs.snapshot_path }}

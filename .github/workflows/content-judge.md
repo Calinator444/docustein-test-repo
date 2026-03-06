@@ -244,9 +244,17 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 ---
 ```
 
-After creating the issue, apply the label `${{ inputs.label_name }}` to it using the `add-labels` tool.
+After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`. Use this query:
 
-Record the created issue number. Update this row:
+```
+repo:${{ github.repository }} is:issue is:open label:${{ inputs.label_name }} "<issue_summary>" in:title
+```
+
+Where `<issue_summary>` is the exact summary string passed to `create-issue` in this step (do **not** include the `🦅 ContentHawk - Content Audit: ` prefix — search only for the summary portion). Take the `number` field from the first matching result.
+
+Add this issue to a running `created_issues` list as `{ number: <number>, summary: <issue_summary>, path: <Path> }` for use in the PR body in Step 5.
+
+Update this row:
 - `CheckResult = Issue #<number>`
 - `CheckedDate = <today's date in YYYY-MM-DD>`
 
@@ -309,8 +317,9 @@ Then open a pull request using the `create-pull-request` safe-output tool:
 
 ### Issues opened
 
-<For each issue created, one bullet: `- #<number>: <issue_summary>`>
-<If no issues were created, write: _No issues were opened this run._>
+<Iterate over the `created_issues` list built during Step 3. For each entry, write one bullet using the `number` and `summary` values retrieved via `search_issues` in Step 3d:>
+`- #<number>: <issue_summary> (<path>)`
+<If `created_issues` is empty, write: _No issues were opened this run._>
 
 ### Next steps
 
