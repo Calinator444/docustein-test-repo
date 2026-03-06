@@ -23,7 +23,7 @@
 #
 # Agent 2 (Judge) of the ContentHawk pipeline. Reads a merged snapshot file from main, parses the Agent Configuration and Files to Review table, then iterates over every pending row in order. For each file it reads the content, judges whether the file needs action based on the Intent captured by Agent 1, and either opens a labelled GitHub issue or marks the row as Skipped. Once all affordable rows have been processed it commits the updated snapshot (CheckedDate and CheckResult filled in) to a new branch and opens a pull request back to main. Stops immediately if a judge PR already exists for this label to avoid duplicates. Also stops if the number of open labelled issues already meets or exceeds max_open_issues without making any changes.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"1378c37a7db1f5fc9a17e4b3d6f09f4d12c33a4e6767e1122317be47304115ed","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"688fc9aa3d522299b078cd30159c6e8cc51dc1fcd54cfacbeaefc31a6c9111c0","compiler_version":"v0.50.5"}
 
 name: "Content Judge"
 "on":
@@ -183,8 +183,6 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
-          GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_INPUTS_LABEL_NAME: ${{ inputs.label_name }}
           GH_AW_INPUTS_MAX_OPEN_ISSUES: ${{ inputs.max_open_issues }}
           GH_AW_INPUTS_SNAPSHOT_PATH: ${{ inputs.snapshot_path }}
@@ -374,7 +372,7 @@ jobs:
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 30 issue(s) can be created. Title will be prefixed with \"🦅ContentHawk - Content Audit: \". Labels [${{ inputs.label_name }}] will be automatically added.",
+              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 30 issue(s) can be created. Title will be prefixed with \"🦅 ContentHawk - Content Audit: \". Labels [${{ inputs.label_name }}] will be automatically added.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -1254,7 +1252,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"labels\":[\"${{ inputs.label_name }}\"],\"max\":30,\"title_prefix\":\"🦅ContentHawk - Content Audit: \"},\"create_pull_request\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"labels\":[\"${{ inputs.label_name }}\"],\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[Content Judge] \"},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"labels\":[\"${{ inputs.label_name }}\"],\"max\":30,\"title_prefix\":\"🦅 ContentHawk - Content Audit: \"},\"create_pull_request\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"labels\":[\"${{ inputs.label_name }}\"],\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[Content Judge] \"},\"missing_data\":{},\"missing_tool\":{}}"
           GH_AW_CI_TRIGGER_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
