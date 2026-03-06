@@ -244,13 +244,13 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 ---
 ```
 
-After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`. Use this query:
+After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`. Use this querClaims TFS is most up-to-datey:
 
 ```
 repo:${{ github.repository }} is:issue is:open label:${{ inputs.label_name }} "<issue_summary>" in:title
 ```
 
-Where `<issue_summary>` is the exact summary string passed to `create-issue` in this step (do **not** include the `🦅 ContentHawk - Content Audit: ` prefix — search only for the summary portion). Take the `number` field from the first matching result.
+Where `<issue_summary>` is the exact summary string passed to `create-issue` in this step. Take the `number` field from the first matching result.
 
 Add this issue to a running `created_issues` list as `{ number: <number>, summary: <issue_summary>, path: <Path> }` for use in the PR body in Step 5.
 
