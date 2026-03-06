@@ -69,7 +69,7 @@ safe-outputs:
 tools:
   github:
     lockdown: false
-    toolsets: [default]
+    toolsets: [issues, repos, pull_requests, search,labels]
     github-token: "${{ secrets.TINA_GITHUB_PAT }}"
   tavily:
     tools: [search, search_news]
