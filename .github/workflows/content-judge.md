@@ -30,6 +30,8 @@ on:
 engine:
   id: copilot
   model: gpt-5-mini
+  env:
+    GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
 mcp-servers:
   tavily:
@@ -51,7 +53,6 @@ env:
   GIT_AUTHOR_EMAIL: "content-hawk@users.noreply.github.com"
   GIT_COMMITTER_NAME: "content-hawk"
   GIT_COMMITTER_EMAIL: "content-hawk@users.noreply.github.com"
-  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
 concurrency:
   group: "contenthawk-judge-${{ inputs.label_name }}"
