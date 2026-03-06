@@ -23,7 +23,7 @@
 #
 # Agent 2 (Judge) of the ContentHawk pipeline. Reads a merged snapshot file from main, parses the Agent Configuration and Files to Review table, then iterates over every pending row in order. For each file it reads the content, judges whether the file needs action based on the Intent captured by Agent 1, and either opens a labelled GitHub issue or marks the row as Skipped. Once all affordable rows have been processed it commits the updated snapshot (CheckedDate and CheckResult filled in) to a new branch and opens a pull request back to main. Stops immediately if a judge PR already exists for this label to avoid duplicates. Also stops if the number of open labelled issues already meets or exceeds max_open_issues without making any changes.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e78336cb9457a3868ea982b3944724bbf6e7ddadd0b3b17bc5b47bb3fe3bbbbc","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"4cfffcd6b9e60e265cd8e970e839942e4f3f87213ce501dbf9f2641f3b99aa6e","compiler_version":"v0.50.5"}
 
 name: "Content Judge"
 "on":
@@ -49,6 +49,7 @@ concurrency:
 run-name: "Content Judge"
 
 env:
+  GH_TOKEN: ${{ github.token }}
   GIT_AUTHOR_EMAIL: content-hawk@users.noreply.github.com
   GIT_AUTHOR_NAME: content-hawk
   GIT_COMMITTER_EMAIL: content-hawk@users.noreply.github.com
