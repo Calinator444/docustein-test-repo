@@ -51,7 +51,6 @@ env:
   GIT_AUTHOR_EMAIL: "content-hawk@users.noreply.github.com"
   GIT_COMMITTER_NAME: "content-hawk"
   GIT_COMMITTER_EMAIL: "content-hawk@users.noreply.github.com"
-  GH_TOKEN: ${{ github.token }}
 
 concurrency:
   group: "contenthawk-judge-${{ inputs.label_name }}"
@@ -71,6 +70,7 @@ safe-outputs:
 tools:
   github:
     toolsets: [default]
+    github-token: "${{ secrets.TINA_GITHUB_PAT }}"
   tavily:
     tools: [search, search_news]
 
