@@ -242,6 +242,8 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 <Concrete, actionable suggestions for how to resolve the issue. If you used web search, include relevant references.>
 
 ---
+
+<!-- contenthawk-run-id: ${{ github.run_id }} -->
 ```
 
 Add an entry to a running `created_issues` list as `{ summary: <issue_summary>, path: <Path> }`. Issue numbers will be resolved in bulk in Step 3f after the loop completes.
@@ -261,7 +263,7 @@ Update this row:
 After the loop over `pending_rows` is complete, resolve the issue numbers for every entry in `created_issues` using the GitHub MCP `search_issues` tool. Use the hidden `gh-aw-workflow-id` marker that the gh-aw runtime automatically embeds in the body of every issue created by this workflow. The workflow name in the marker is the filename without the `.md` extension — for this workflow that is `content-judge`:
 
 ```
-repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" in:body
+repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" "contenthawk-run-id: ${{ github.run_id }}" in:body
 ```
 
 For each issue returned:
