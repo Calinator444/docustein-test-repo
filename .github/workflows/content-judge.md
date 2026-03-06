@@ -69,6 +69,7 @@ safe-outputs:
 
 tools:
   github:
+    lockdown: false
     toolsets: [default]
     github-token: "${{ secrets.TINA_GITHUB_PAT }}"
   tavily:

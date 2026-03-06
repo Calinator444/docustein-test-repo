@@ -23,7 +23,7 @@
 #
 # Agent 2 (Judge) of the ContentHawk pipeline. Reads a merged snapshot file from main, parses the Agent Configuration and Files to Review table, then iterates over every pending row in order. For each file it reads the content, judges whether the file needs action based on the Intent captured by Agent 1, and either opens a labelled GitHub issue or marks the row as Skipped. Once all affordable rows have been processed it commits the updated snapshot (CheckedDate and CheckResult filled in) to a new branch and opens a pull request back to main. Stops immediately if a judge PR already exists for this label to avoid duplicates. Also stops if the number of open labelled issues already meets or exceeds max_open_issues without making any changes.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3985c031e3bd6e264b5826a7dff221c31b926f5d3b252f294d5eaa4af68e2c7e","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5e7c1dc7ed93591c3383885740faad69006183dedc75fb2bcd56668a51a2fc34","compiler_version":"v0.50.5"}
 
 name: "Content Judge"
 "on":
@@ -361,17 +361,6 @@ jobs:
         run: /opt/gh-aw/actions/install_copilot_cli.sh 0.0.418
       - name: Install awf binary
         run: bash /opt/gh-aw/actions/install_awf_binary.sh v0.23.0
-      - name: Determine automatic lockdown mode for GitHub MCP Server
-        id: determine-automatic-lockdown
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        env:
-          GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
-          GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
-          CUSTOM_GITHUB_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
-        with:
-          script: |
-            const determineAutomaticLockdown = require('/opt/gh-aw/actions/determine_automatic_lockdown.cjs');
-            await determineAutomaticLockdown(github, context, core);
       - name: Download container images
         run: bash /opt/gh-aw/actions/download_docker_images.sh ghcr.io/github/gh-aw-firewall/agent:0.23.0 ghcr.io/github/gh-aw-firewall/api-proxy:0.23.0 ghcr.io/github/gh-aw-firewall/squid:0.23.0 ghcr.io/github/gh-aw-mcpg:v0.1.5 ghcr.io/github/github-mcp-server:v0.31.0 node:lts-alpine
       - name: Write Safe Outputs Config
@@ -747,7 +736,6 @@ jobs:
           GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
           GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-start.outputs.api_key }}
           GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-start.outputs.port }}
-          GITHUB_MCP_LOCKDOWN: ${{ steps.determine-automatic-lockdown.outputs.lockdown == 'true' && '1' || '0' }}
           GITHUB_MCP_SERVER_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
@@ -775,7 +763,6 @@ jobs:
                 "type": "stdio",
                 "container": "ghcr.io/github/github-mcp-server:v0.31.0",
                 "env": {
-                  "GITHUB_LOCKDOWN_MODE": "$GITHUB_MCP_LOCKDOWN",
                   "GITHUB_PERSONAL_ACCESS_TOKEN": "\${GITHUB_MCP_SERVER_TOKEN}",
                   "GITHUB_READ_ONLY": "1",
                   "GITHUB_TOOLSETS": "context,repos,issues,pull_requests"
