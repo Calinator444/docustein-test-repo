@@ -309,6 +309,12 @@ Then open a pull request using the `create-pull-request` safe-output tool:
 
 ### Label
 
+
+### Variables
+
+<Any variables created during the workflow run for debugging purposes, including variables created by the agent itself. For example, if you created a variable `foo = "bar"` during the run, output: 
+- `foo = "bar"`>
+
 `${{ inputs.label_name }}`
 
 ### Snapshot file
@@ -331,3 +337,5 @@ Then open a pull request using the `create-pull-request` safe-output tool:
 ```
 
 After the PR is created, apply the label `${{ inputs.label_name }}` to the PR using the `add-labels` tool.
+
+
