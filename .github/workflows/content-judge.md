@@ -136,11 +136,7 @@ The snapshot file is **self-contained** — it stores every configuration value 
 
 ### Step 0 — Guard: check for an existing judge PR
 
-Before doing any work, check whether an open PR already exists for this judge run. Run:
-
-```bash
-gh pr list --label "${{ inputs.label_name }}" --state open --search "[Content Judge]" --json number,title
-```
+Before doing any work, check whether an open PR already exists for this judge run. Use the GitHub toolset to query for open PRs with the label `${{ inputs.label_name }}` and the search term `[Content Judge]`:
 
 If the command returns **any** results, **stop immediately**. Output a message like:
 
@@ -204,7 +200,7 @@ If `open_count >= max_open_issues`, **stop the loop**. Leave this row and all re
 
 #### 3b. Read the content file
 
-Read the full content of the file at the `Path` value from the row. If the file does not exist in the repository, record:
+Read the full content of the file at the `Path` value from the row. If the file does not exist inis  the repository, record:
 - `CheckResult = Skipped`
 - `CheckedDate = <today's date in YYYY-MM-DD>`
 
