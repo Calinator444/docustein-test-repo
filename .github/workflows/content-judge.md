@@ -246,6 +246,8 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 <!-- contenthawk-run-id: ${{ github.run_id }} -->
 ```
 
+Wait **10 seconds** before continuing (to allow GitHub's indexing to catch up before the bulk search in Step 3f).
+
 Add an entry to a running `created_issues` list as `{ summary: <issue_summary>, path: <Path> }`. Issue numbers will be resolved in bulk in Step 3f after the loop completes.
 
 Record for this row in memory:
