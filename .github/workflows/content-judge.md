@@ -244,7 +244,7 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 ---
 ```
 
-After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`. Use this querClaims TFS is most up-to-datey:
+After creating the issue, use the GitHub MCP `search_issues` tool to retrieve the issue number by searching for the exact title summary that was just passed to `create-issue`.
 
 ```
 repo:${{ github.repository }} is:issue is:open label:${{ inputs.label_name }} "<issue_summary>" in:title
