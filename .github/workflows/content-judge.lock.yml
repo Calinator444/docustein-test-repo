@@ -23,7 +23,7 @@
 #
 # Agent 2 (Judge) of the ContentHawk pipeline. Reads a merged snapshot file from main, parses the Agent Configuration and Files to Review table, then iterates over every pending row in order. For each file it reads the content, judges whether the file needs action based on the Intent captured by Agent 1, and either opens a labelled GitHub issue or marks the row as Skipped. Once all affordable rows have been processed it commits the updated snapshot (CheckedDate and CheckResult filled in) to a new branch and opens a pull request back to main. Stops immediately if a judge PR already exists for this label to avoid duplicates. Also stops if the number of open labelled issues already meets or exceeds max_open_issues without making any changes.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5e7c1dc7ed93591c3383885740faad69006183dedc75fb2bcd56668a51a2fc34","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"1378c37a7db1f5fc9a17e4b3d6f09f4d12c33a4e6767e1122317be47304115ed","compiler_version":"v0.50.5"}
 
 name: "Content Judge"
 "on":
@@ -138,7 +138,7 @@ jobs:
           cat "/opt/gh-aw/prompts/safe_outputs_prompt.md"
           cat << 'GH_AW_PROMPT_EOF'
           <safe-output-tools>
-          Tools: create_issue, create_pull_request, add_labels, missing_tool, missing_data
+          Tools: create_issue, create_pull_request, missing_tool, missing_data
           GH_AW_PROMPT_EOF
           cat "/opt/gh-aw/prompts/safe_outputs_create_pull_request.md"
           cat << 'GH_AW_PROMPT_EOF'
@@ -369,12 +369,12 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"add_labels":{"max":31,"target":"*"},"create_issue":{"max":30},"create_pull_request":{"max":1},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
+          {"create_issue":{"max":30},"create_pull_request":{"max":1},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 30 issue(s) can be created. Title will be prefixed with \"🦅ContentHawk - Content Audit: \".",
+              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 30 issue(s) can be created. Title will be prefixed with \"🦅ContentHawk - Content Audit: \". Labels [${{ inputs.label_name }}] will be automatically added.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -415,7 +415,7 @@ jobs:
               "name": "create_issue"
             },
             {
-              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Title will be prefixed with \"[Content Judge] \".",
+              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Title will be prefixed with \"[Content Judge] \". Labels [${{ inputs.label_name }}] will be automatically added.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -450,27 +450,6 @@ jobs:
                 "type": "object"
               },
               "name": "create_pull_request"
-            },
-            {
-              "description": "Add labels to an existing GitHub issue or pull request for categorization and filtering. Labels must already exist in the repository. For creating new issues with labels, use create_issue with the labels property instead. CONSTRAINTS: Maximum 31 label(s) can be added. Target: *.",
-              "inputSchema": {
-                "additionalProperties": false,
-                "properties": {
-                  "item_number": {
-                    "description": "Issue or PR number to add labels to. This is the numeric ID from the GitHub URL (e.g., 456 in github.com/owner/repo/issues/456). If omitted, adds labels to the issue or PR that triggered this workflow. Only works for issue or pull_request event triggers. For schedule, workflow_dispatch, or other triggers, item_number is required — omitting it will silently skip the label operation.",
-                    "type": "number"
-                  },
-                  "labels": {
-                    "description": "Label names to add (e.g., ['bug', 'priority-high']). Labels must exist in the repository.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "type": "object"
-              },
-              "name": "add_labels"
             },
             {
               "description": "Report that a tool or capability needed to complete the task is not available, or share any information you deem important about missing functionality or limitations. Use this when you cannot accomplish what was requested because the required functionality is missing or access is restricted.",
@@ -545,25 +524,6 @@ jobs:
           GH_AW_SAFE_OUTPUTS_TOOLS_EOF
           cat > /opt/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_EOF'
           {
-            "add_labels": {
-              "defaultMax": 5,
-              "fields": {
-                "item_number": {
-                  "issueOrPRNumber": true
-                },
-                "labels": {
-                  "required": true,
-                  "type": "array",
-                  "itemType": "string",
-                  "itemSanitize": true,
-                  "itemMaxLength": 128
-                },
-                "repo": {
-                  "type": "string",
-                  "maxLength": 256
-                }
-              }
-            },
             "create_issue": {
               "defaultMax": 1,
               "fields": {
@@ -1294,7 +1254,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_labels\":{\"max\":31,\"target\":\"*\"},\"create_issue\":{\"max\":30,\"title_prefix\":\"🦅ContentHawk - Content Audit: \"},\"create_pull_request\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[Content Judge] \"},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"labels\":[\"${{ inputs.label_name }}\"],\"max\":30,\"title_prefix\":\"🦅ContentHawk - Content Audit: \"},\"create_pull_request\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"labels\":[\"${{ inputs.label_name }}\"],\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[Content Judge] \"},\"missing_data\":{},\"missing_tool\":{}}"
           GH_AW_CI_TRIGGER_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}

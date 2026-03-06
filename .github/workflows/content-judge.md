@@ -58,12 +58,12 @@ concurrency:
 
 safe-outputs:
   create-issue:
-    label: "${{ inputs.label_name }}"
+    labels: ["${{ inputs.label_name }}"]
     title-prefix: "🦅ContentHawk - Content Audit: "
     max: 30
   create-pull-request:
     title-prefix: "[Content Judge] "
-    label: "${{ inputs.label_name }}"
+    labels: ["${{ inputs.label_name }}"]
     max: 1
 
 tools:
