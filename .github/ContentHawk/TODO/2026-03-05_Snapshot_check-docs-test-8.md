@@ -16,4 +16,4 @@
 
 | Path        | CategoryList   | Created    | LastUpdated   | CheckedDate | CheckResult |
 |-------------|----------------|------------|---------------|-------------|-------------|
-| content/posts/using-tfs-for-version-control.mdx | uncategorized | - | 1996-12-09 | - | pending |
+| content/posts/using-tfs-for-version-control.mdx | uncategorized | - | 1996-12-09 | 2026-03-06 | Issue #314 |
