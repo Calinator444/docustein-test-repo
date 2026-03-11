@@ -1,16 +1,15 @@
 ---
 description: >
-  Agent 2 (Judge) of the ContentHawk pipeline.
+  Agent 2a (Judge) of the ContentHawk pipeline.
   Reads a merged snapshot file from main, parses the Agent Configuration and
   Files to Review table, then iterates over every pending row in order.
   For each file it reads the content, judges whether the file needs action
-  based on the Intent captured by Agent 1, and either opens a labelled GitHub
-  issue or marks the row as Skipped.
-  Once all affordable rows have been processed it commits the updated snapshot
-  (CheckedDate and CheckResult filled in) to a new branch and opens a pull
-  request back to main.
-  Stops immediately if a judge PR already exists for this label to avoid
-  duplicates. Also stops if the number of open labelled issues already meets
+  based on the Intent captured by Agent 1, and opens a labelled GitHub issue
+  for files that need fixing.
+  After all affordable rows have been processed a post-step dispatches
+  Agent 2b (content-judge-pr) which reads the created issues and opens a
+  pull request to update the snapshot.
+  Stops immediately if the number of open labelled issues already meets
   or exceeds max_open_issues without making any changes.
 
 on:
@@ -61,15 +60,11 @@ safe-outputs:
     labels: ["${{ inputs.label_name }}"]
     title-prefix: "🦅 ContentHawk - Content Audit: "
     max: 30
-  create-pull-request:
-    title-prefix: "[Content Judge] "
-    labels: ["${{ inputs.label_name }}"]
-    max: 1
 
 tools:
   github:
     lockdown: false
-    toolsets: [issues, repos, pull_requests, search,labels]
+    toolsets: [issues, repos, search, labels]
     github-token: "${{ secrets.TINA_GITHUB_PAT }}"
   tavily:
     tools: [search, search_news]
@@ -111,37 +106,51 @@ post-steps:
       name: contenthawk-agent2-results
       path: /tmp/gh-aw/
       retention-days: 7
+
+  - name: Trigger Agent 2b (PR Creator)
+    if: success()
+    env:
+      GH_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
+      INPUT_SNAPSHOT_PATH: ${{ inputs.snapshot_path }}
+      INPUT_LABEL_NAME: ${{ inputs.label_name }}
+      INPUT_JUDGE_RUN_ID: ${{ github.run_id }}
+    run: |
+      gh workflow run content-judge-pr.lock.yml \
+        -f snapshot_path="$INPUT_SNAPSHOT_PATH" \
+        -f label_name="$INPUT_LABEL_NAME" \
+        -f judge_run_id="$INPUT_JUDGE_RUN_ID"
 ---
 
 ## Important context
 
-This workflow is **Agent 2 (Judge)** in a three-agent pipeline called **ContentHawk**:
+This workflow is **Agent 2a (Judge)** in a multi-agent pipeline called **ContentHawk**:
 
-- **Agent 1 (Detective)**: Catalogs content files, creates a snapshot tracking file on a branch, and opens a PR. That PR is reviewed and merged into `main` before Agent 2 runs.
-- **Agent 2 (this workflow)**: Reads the merged snapshot, judges each pending file against the intent, opens issues for files that need fixing, and opens a PR to update the snapshot.
+- **Agent 1 (Detective)**: Catalogs content files, creates a snapshot tracking file on a branch, and opens a PR. That PR is reviewed and merged into `main` before Agent 2a runs.
+- **Agent 2a (this workflow)**: Reads the merged snapshot, judges each pending file against the intent, and opens issues for files that need fixing. Does **not** update the snapshot or create a PR — that is handled by Agent 2b.
+- **Agent 2b (PR Creator)**: Triggered automatically by a post-step when this workflow succeeds. Reads the issues created by Agent 2a, updates the snapshot with issue numbers, and opens a PR.
 - **Agent 3 (Fixer)**: Reads issues with the intent label and raises PRs to resolve them.
 
-The snapshot file is **self-contained** — it stores every configuration value Agent 1 received, so Agent 2 reads everything it needs directly from the snapshot.
+The snapshot file is **self-contained** — it stores every configuration value Agent 1 received, so Agent 2a reads everything it needs directly from the snapshot.
 
 ## Inputs provided by the user
 
 | Input            | Value                                  | Used for                              |
 |------------------|----------------------------------------|---------------------------------------|
 | Snapshot Path    | `${{ inputs.snapshot_path }}`          | Locating the snapshot file on main    |
-| Label Name       | `${{ inputs.label_name }}`             | Issues, PR, concurrency guard         |
+| Label Name       | `${{ inputs.label_name }}`             | Issues, concurrency guard             |
 | Max Open Issues  | `${{ inputs.max_open_issues }}`        | Headroom check before each issue      |
 
 ---
 
 ### Step 0 — Guard: check for an existing judge PR
 
-Before doing any work, check whether an open PR already exists for this judge run. Use the GitHub toolset to query for open PRs with the label `${{ inputs.label_name }}` and the search term `[Content Judge]`:
+Before doing any work, check whether an open PR already exists for this label from a previous judge run. Use the GitHub toolset to query for open PRs with the label `${{ inputs.label_name }}` and the search term `[Content Judge]`:
 
 If the command returns **any** results, **stop immediately**. Output a message like:
 
 > A judge PR already exists for this intent (PR #\<number\>). Skipping to avoid duplicates.
 
-Do **not** read the snapshot, create issues, or open a PR. End the workflow here.
+Do **not** read the snapshot or create issues. End the workflow here.
 
 ### Step 1 — Read and parse the snapshot
 
@@ -181,7 +190,7 @@ If `open_count >= max_open_issues`, **stop immediately**. Output a message like:
 
 > Issue limit reached: $open_count open issues already exist with label '${{ inputs.label_name }}' (max: $max_open_issues). Run again after issues are closed.
 
-Do **not** update the snapshot or open a PR.
+Do **not** create any issues.
 
 ### Step 3 — Process pending rows in order
 
@@ -195,15 +204,11 @@ Before processing this row, re-count open issues:
 gh issue list --label "${{ inputs.label_name }}" --state open --json number | jq 'length'
 ```
 
-If `open_count >= max_open_issues`, **stop the loop**. Leave this row and all remaining rows with `CheckResult = pending` and `CheckedDate = -`. Proceed to Step 4 to commit whatever updates have been made so far.
+If `open_count >= max_open_issues`, **stop the loop**. Log a message noting the headroom limit was reached and how many rows remain unprocessed.
 
 #### 3b. Read the content file
 
-Read the full content of the file at the `Path` value from the row. If the file does not exist in the repository, record:
-- `CheckResult = Skipped`
-- `CheckedDate = <today's date in YYYY-MM-DD>`
-
-Log a warning and continue to the next row.
+Read the full content of the file at the `Path` value from the row. If the file does not exist in the repository, log a warning and continue to the next row.
 
 #### 3c. Judge the file
 
@@ -246,106 +251,14 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 <!-- contenthawk-run-id: ${{ github.run_id }} -->
 ```
 
-Add an entry to a running `created_issues` list as `{ summary: <issue_summary>, path: <Path> }`. Issue numbers will be resolved in bulk in Step 3f after the loop completes.
-
-Record for this row in memory:
-- `CheckResult = pending-resolution` (a temporary marker; replaced with the real issue number in Step 3f before the snapshot is written)
-- `CheckedDate = <today's date in YYYY-MM-DD>`
+Log the issue creation. Continue to the next row.
 
 #### 3e. Skip the file (if `needs_action = false`)
 
-Update this row:
-- `CheckResult = Skipped`
-- `CheckedDate = <today's date in YYYY-MM-DD>`
+Log that the file was skipped. Continue to the next row.
 
-### Step 3f — Resolve issue numbers in bulk
+### Step 4 — Summary
 
-After the loop over `pending_rows` is complete, resolve the issue numbers for every entry in `created_issues` using the GitHub MCP `search_issues` tool. Use the hidden `gh-aw-workflow-id` marker that the gh-aw runtime automatically embeds in the body of every issue created by this workflow. The workflow name in the marker is the filename without the `.md` extension — for this workflow that is `content-judge`:
-
-```
-repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" "contenthawk-run-id: ${{ github.run_id }}" in:body
-```
-
-For each issue returned:
-1. Parse the `### File` section of the issue body to extract the file path.
-2. Find the matching entry in `created_issues` where `path` equals that extracted path.
-3. Set `number = <issue number from the search result>` on that `created_issues` entry.
-4. Update the in-memory `CheckResult` for the corresponding row from `pending-resolution` to `Issue #<number>`.
-
-If a `created_issues` entry cannot be matched to any returned issue, record `CheckResult = Issue (number unknown)` for that row and log a warning.
-
-### Step 4 — Write the updated snapshot
-
-Produce the full updated snapshot file. The content must be identical to the original snapshot **except** for the rows that were processed — only the `CheckedDate` and `CheckResult` columns change for those rows. All other columns (`Path`, `CategoryList`, `Created`, `LastUpdated`) must be preserved **verbatim**, character-for-character.
-
-Rows that were not reached because the loop stopped early retain `CheckResult = pending` and `CheckedDate = -` exactly as they were.
-
-The `## Agent Configuration` table must be preserved entirely unchanged.
-
-### Step 5 — Open a pull request with the updated snapshot
-
-Create a new branch from `main` named:
-
-```
-ContentHawk/judge/${{ inputs.label_name }}
-```
-
-Commit the updated snapshot file from Step 4 to this branch. The commit message must be:
-
-```
-content-hawk[judge]: update snapshot for ${{ inputs.label_name }}
-```
-
-Then open a pull request using the `create-pull-request` safe-output tool:
-
-**Title**: `[Content Judge] ${{ inputs.label_name }} — <N> issues opened, <M> skipped`
-
-> Note: the `title-prefix` safe-output setting will prepend `[Content Judge] ` automatically — so only pass `${{ inputs.label_name }} — <N> issues opened, <M> skipped` as the title value.
-
-**Base branch**: `main`
-
-**Body**:
-
-```markdown
-## ContentHawk — Agent 2 (Judge) Results
-
-### Summary
-
-| Metric                | Count |
-|-----------------------|-------|
-| Issues opened         | <N>   |
-| Rows skipped          | <M>   |
-| Rows still pending    | <P>   |
-
-### Label
-
-
-### Variables
-
-<Any variables created during the workflow run for debugging purposes, including variables created by the agent itself. For example, if you created a variable `foo = "bar"` during the run, output: 
-- `foo = "bar"`>
-
-`${{ inputs.label_name }}`
-
-### Snapshot file
-
-`${{ inputs.snapshot_path }}`
-
-### Issues opened
-
-<Iterate over the `created_issues` list resolved in Step 3f. For each entry, write one bullet using the `number` and `summary` values:
-`- #<number>: <issue_summary> (<path>)`
-If `created_issues` is empty, write: _No issues were opened this run._>
-
-### Next steps
-
-- Merge this PR to update the snapshot on `main`.
-- If rows are still pending, re-run Agent 2 after closing enough issues to drop below the limit.
-- Once all rows are processed, Agent 3 can start resolving the open issues.
-
----
-```
-
-After the PR is created, apply the label `${{ inputs.label_name }}` to the PR using the `add-labels` tool.
+After the loop completes, output a summary of the run. Include the total number of issues created, files skipped, and rows still pending (if the headroom limit was reached). Agent 2b will be triggered automatically by a post-step to read the issues and update the snapshot.
 
 
