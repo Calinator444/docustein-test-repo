@@ -111,7 +111,7 @@ The snapshot file is **self-contained** — it stores every configuration value 
 
 ---
 
-### Step 0 — Guard: check for an existing judge PR
+<!-- ### Step 0 — Guard: check for an existing judge PR
 
 Before doing any work, check whether an open PR already exists for this label. Use the GitHub toolset to query for open PRs with the label `${{ inputs.label_name }}` and the search term `[Content Judge]`:
 
@@ -144,7 +144,7 @@ Collect every row from the `## Files to Review` table. Preserve the exact row or
 
 If `pending_rows` is empty (all rows already have a non-pending CheckResult), **stop immediately** with a message:
 
-> No pending rows found in snapshot. Nothing to do.
+> No pending rows found in snapshot. Nothing to do. -->
 
 ### Step 2 — Resolve issues from the judge run
 
@@ -167,7 +167,7 @@ If no issues are found at all, log a message:
 
 Continue to Step 3 — the snapshot still needs to be committed even if no issues were created (rows remain `pending`).
 
-### Step 3 — Update the snapshot
+<!-- ### Step 3 — Update the snapshot
 
 Produce the full updated snapshot file. The content must be identical to the original snapshot **except** for the rows that have a matching issue in `matched_issues`:
 
@@ -242,4 +242,4 @@ If `matched_issues` is empty, write: _No issues were matched this run._>
 ---
 ```
 
-After the PR is created, apply the label `${{ inputs.label_name }}` to the PR using the `add-labels` tool.
+After the PR is created, apply the label `${{ inputs.label_name }}` to the PR using the `add-labels` tool. -->
