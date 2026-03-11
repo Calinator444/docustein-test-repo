@@ -161,11 +161,11 @@ For each issue returned:
 
 Build a `matched_issues` list from all successful matches. If an issue cannot be matched to any `pending_rows` entry, log a warning but continue.
 
-If no issues are found at all, log a message:
+If no issues are found at all, or if `matched_issues` is empty after processing all returned issues, output a `noop` message and stop:
 
-> No issues found for judge run ${{ inputs.judge_run_id }}. The judge may have skipped all files.
+> No issues matched for judge run ${{ inputs.judge_run_id }} — snapshot unchanged. The judge may have skipped all files or no issues matched any pending rows.
 
-Continue to Step 3 — the snapshot still needs to be committed even if no issues were created (rows remain `pending`).
+Do not proceed to Steps 3 or 4.
 
 ### Step 3 — Update the snapshot
 
