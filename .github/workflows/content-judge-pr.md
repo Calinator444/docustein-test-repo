@@ -148,10 +148,10 @@ If `pending_rows` is empty (all rows already have a non-pending CheckResult), **
 
 ### Step 2 — Resolve issues from the judge run
 
-Search GitHub for all issues created by Agent 2a during the judge run. Use the hidden `gh-aw-workflow-id` marker that the gh-aw runtime automatically embeds in the body of every issue created by Agent 2a, combined with the `contenthawk-run-id` marker:
+Search GitHub for all issues created by Agent 2a during the judge run. Use the hidden `gh-aw-workflow-id` marker that the gh-aw runtime automatically embeds in the body of every issue created by Agent 2a:
 
 ```
-repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" "contenthawk-run-id: ${{ inputs.judge_run_id }}" in:body
+repo:${{ github.repository }} is:issue is:open "gh-aw-workflow-id: content-judge" in:body
 ```
 
 For each issue returned:
