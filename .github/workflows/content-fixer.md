@@ -128,13 +128,7 @@ The snapshot file is **self-contained** — it stores every configuration value 
 
 ### Step 0 — Guard: check eligible issue count
 
-Before doing any work, count the number of open issues that carry the label `${{ inputs.label_name }}`:
-
-```bash
-gh issue list --label "${{ inputs.label_name }}" --state open --json number | jq 'length'
-```
-
-Let this count be `open_count`. Let `min_issues` = `${{ inputs.min_issues_to_bundle }}` (parsed as an integer).
+Before doing any work, use the GitHub toolset to list all open issues that carry the label `${{ inputs.label_name }}`. Count the results to get `open_count`. Let `min_issues` = `${{ inputs.min_issues_to_bundle }}` (parsed as an integer).
 
 If `open_count < min_issues`, **stop immediately**. Output a message like:
 
