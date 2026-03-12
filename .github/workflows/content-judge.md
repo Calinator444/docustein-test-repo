@@ -248,7 +248,7 @@ Create a GitHub issue using the `create-issue` safe-output tool:
 
 ---
 
-<!-- contenthawk-run-id: ${{ github.run_id }} -->
+contenthawk-run-id: ${{ github.run_id }}
 ```
 
 Log the issue creation. Continue to the next row.
