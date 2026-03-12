@@ -23,7 +23,7 @@
 #
 # Agent 1 (Detective) of the ContentHawk pipeline. Scans content files based on user-provided search scope, extracts category and date metadata from each file, sorts them by the user's processing priority, and commits a markdown snapshot tracking file to a new branch, then opens a pull request. The snapshot is a markdown table listing every file with its metadata so Agent 2 can iterate over rows to find issues and Agent 3 can raise PRs grouped by the intent label. Also creates a custom GitHub label derived from the user's intent for Agent 2 to inject into issues and Agent 3 to bundle PRs. Stops immediately if an open catalog-tracking PR already exists for this intent to avoid duplicates.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"a2a9ae5b38fabe441f8d70177360bc92cee4f7b8befad3d480fe9d724568a4fb","compiler_version":"v0.50.5"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"aecb48693ef8219356f91ab4d97e2139ea782e341d4c32169bd1c96a1b20eeee","compiler_version":"v0.50.5"}
 
 name: "Content Catalog Snapshot"
 "on":
@@ -372,6 +372,7 @@ jobs:
         env:
           GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
           GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
+          CUSTOM_GITHUB_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
         with:
           script: |
             const determineAutomaticLockdown = require('/opt/gh-aw/actions/determine_automatic_lockdown.cjs');
@@ -678,7 +679,7 @@ jobs:
           GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-start.outputs.api_key }}
           GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-start.outputs.port }}
           GITHUB_MCP_LOCKDOWN: ${{ steps.determine-automatic-lockdown.outputs.lockdown == 'true' && '1' || '0' }}
-          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
           set -eo pipefail
@@ -774,7 +775,7 @@ jobs:
           GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
           GITHUB_API_URL: ${{ github.api_url }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
-          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.TINA_GITHUB_PAT }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
@@ -828,12 +829,13 @@ jobs:
             const { main } = require('/opt/gh-aw/actions/redact_secrets.cjs');
             await main();
         env:
-          GH_AW_SECRET_NAMES: 'COPILOT_GITHUB_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN,GITHUB_TOKEN,TAVILY_API_KEY'
+          GH_AW_SECRET_NAMES: 'COPILOT_GITHUB_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN,GITHUB_TOKEN,TAVILY_API_KEY,TINA_GITHUB_PAT'
           SECRET_COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           SECRET_GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
           SECRET_GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
           SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SECRET_TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          SECRET_TINA_GITHUB_PAT: ${{ secrets.TINA_GITHUB_PAT }}
       - name: Upload Safe Outputs
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
