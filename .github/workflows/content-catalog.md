@@ -71,6 +71,7 @@ safe-outputs:
 tools:
   github:
     toolsets: [default]
+    github-token: "${{ secrets.TINA_GITHUB_PAT }}"
   tavily:
     tools: [search, search_news]
 
